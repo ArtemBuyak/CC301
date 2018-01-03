@@ -47,7 +47,7 @@ class CRC():
         Result = True
         CRChi = 0xFF
         CRClo = 0xFF
-        if cnt >= 30:
+        if cnt >= 255:
             return False
         for i in range(cnt):
             idx   = (CRChi ^ buf[i]) & 0xFF

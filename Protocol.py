@@ -1,18 +1,22 @@
 from CRC import CRC
+import struct
 
 
 class CC301Protocol:
 
     def __init__(self):
         self.__buff = []
-        self.__crc = CRC
+        self.__crc = CRC()
         self.__checkParam = 0
         self.__checkAddr = 0
+        self.__strResult = ""
+        self.__data = Data()
+        self.__time = Time()
+
 
     @property
     def buff(self):
         return self.__buff
-
     @buff.setter
     def buff(self, mass):
         self.__buff = mass
@@ -20,7 +24,6 @@ class CC301Protocol:
     @property
     def crc(self):
         return self.__crc
-
     @crc.setter
     def crc(self, crc):
         self.__crc = crc
@@ -28,7 +31,6 @@ class CC301Protocol:
     @property
     def checkParam(self):
         return self.__checkParam
-
     @checkParam.setter
     def checkParam(self, checkparam):
         self.__checkParam = checkparam
@@ -36,43 +38,136 @@ class CC301Protocol:
     @property
     def checkAddr(self):
         return self.__checkAddr
-
     @checkAddr.setter
     def checkAddr(self, checkaddr):
         self.__checkAddr = checkaddr
 
+    @property
+    def strResult(self):
+        return self.__strResult
+    @strResult.setter
+    def strResult(self, strResult):
+        self.__strResult = strResult
+
+    @property
+    def data(self):
+        return self.__data
+    @data.setter
+    def data(self, data):
+        self.__data = data
+
+    @property
+    def time(self):
+        return self.__time
+    @time.setter
+    def time(self, time):
+        self.__time = time
 
     # method create a message to meter
-    def create_data_request(self, addr, parametr, offset, tariff, refinement):
+    def create_data_request(self, addr, parametr, offset, tariff):
         self.buff[0] = addr # байт сетевого адреса, на байты 0x00 и 0xFF отвечают все счетчики
         self.buff[1] = 0x03 # функция, для чтения нужно 3(4), на выбор, но в описании рекомендуют 3
         self.buff[2] = parametr
         self.buff[3] = offset
         self.buff[4] = tariff # 0 - бестарифное значение, 1...8 - соответсвенные тарифы
         self.buff[5] = 0x00   # уточнение, пока что в первом приближении будет равно 0
+        self.checkAddr = addr
+        self.checkParam = parametr
+        self.data.tariff = tariff
         self.crc.CRC8(self.buff, 6)
 
     def process_cc301_data(self, inbuf):
-        # проверка адреса, результата, комманды и номера
-        if (inbuf[0] != self.checkAddr) or (inbuf[3] != 0) or (inbuf[1] != 0x03) or (inbuf[2] != self.checkParam):
-            print("Not correct answer")
-            return None
 
-        if inbuf[2] == 0x32:
-            time = Time()
-            time.year = 2000 + inbuf[9]
-            time.month = inbuf[8]
-            time.day = inbuf[7]
-            time.hour = inbuf[6]
-            time.minute = inbuf[5]
-            time.sec = inbuf[4]
-            print("Year = %d, month = %d, day = %d, HH:MM:SS = %d:%d:%d" % (time.year, time.month, time.day, time.hour, time.minute, time.sec))
+        if self.checkAnswer(inbuf):
+            # date/time
+            if inbuf[2] == 32:
+                self.time.year = 2000 + inbuf[9]
+                self.time.month = inbuf[8]
+                self.time.day = inbuf[7]
+                self.time.hour = inbuf[6]
+                self.time.minute = inbuf[5]
+                self.time.sec = inbuf[4]
+                print("Year = %d, month = %d, day = %d, HH:MM:SS = %d:%d:%d" % (self.time.year, self.time.month, self.time.day, self.time.hour, self.time.minute, self.time.sec))
 
-        if inbuf[2] == 0x43:
+            # by the beginning of the day/month/year
+            elif inbuf[2] == 42 or inbuf[2] == 43 or inbuf[2] == 44:
+                self.processingAnswer(inbuf)
+
+            # for the day/month/year
+            elif inbuf[2] == 2 or inbuf[2] == 3 or inbuf == 4:
+                self.processingAnswer(inbuf)
+
+            # for the sum value, average 3-min/15-min
+            elif inbuf[2] == 1 or inbuf[2] == 5 or inbuf[2] == 6:
+                self.processingAnswer(inbuf)
 
 
 
+    #processing answer and save in struct Data()
+    def processingAnswer(self, inbuf):
+        byte_arr = bytearray(b'')
+        byte_arr.append(inbuf[4])
+        byte_arr.append(inbuf[5])
+        byte_arr.append(inbuf[6])
+        byte_arr.append(inbuf[7])
+        self.data.a_plus = struct.unpack('f', byte_arr)
+        byte_arr[0] = inbuf[8]
+        byte_arr[1] = inbuf[9]
+        byte_arr[2] = inbuf[10]
+        byte_arr[3] = inbuf[11]
+        self.data.a_minus = struct.unpack('f', byte_arr)
+        byte_arr[0] = inbuf[12]
+        byte_arr[1] = inbuf[13]
+        byte_arr[2] = inbuf[14]
+        byte_arr[3] = inbuf[15]
+        self.data.r_plus = struct.unpack('f', byte_arr)
+        byte_arr[0] = inbuf[12]
+        byte_arr[1] = inbuf[13]
+        byte_arr[2] = inbuf[14]
+        byte_arr[3] = inbuf[15]
+        self.data.r_minus = struct.unpack('f', byte_arr)
 
+    # method check correct answer or not, return bool
+    def checkAnswer(self, inbuf):
+        if not self.crc.CRC8(inbuf, (len(inbuf) - 2)):
+            return False
+
+        if inbuf[3] == 0:
+            self.strResult = "OK"
+        elif inbuf[3] == 1:
+            self.strResult = "Неизвестная ошибка."
+            return False
+        elif inbuf[3] == 2:
+            self.strResult = "Неизвестный параметр."
+            return False
+        elif inbuf[3] == 3:
+            self.strResult = "Ошибочный аргумент."
+            return False
+        elif inbuf[3] == 4:
+            self.strResult = "Несанкционированный доступ."
+            return False
+        elif inbuf[3] == 5:
+            self.strResult = "Блок поврежден."
+            return False
+        elif inbuf[3] == 6:
+            self.strResult = "Ошибка памяти."
+            return False
+        elif inbuf[3] == 7:
+            self.strResult = "Счетчик занят."
+            return False
+
+
+        if inbuf[0] != self.checkAddr:
+            self.strResult = "Адрес в ответной посылке не соответствует адресу в запросе"
+            return False
+        if inbuf[1] != 0x03 or inbuf[1] != 0x04:
+            self.strResult = "Номер команды в ответной посылке не соответствует номеру команды в запросе."
+            return False
+        if inbuf[2] != self.checkParam:
+            self.strResult = "Номер параметра в ответной посылке не соответствует номеру параметра в запросе."
+            return False
+
+        return True
 
 class Time:
     def __init__(self, year=0 , month=0, day=0, hour=0, minute=0, sec=0):
@@ -83,11 +178,9 @@ class Time:
         self.__minute = minute
         self.__sec = sec
 
-
     @property
     def year(self):
         return self.__year
-
     @year.setter
     def year(self, year):
         self.__year = year
@@ -95,7 +188,6 @@ class Time:
     @property
     def month(self):
         return self.__month
-
     @month.setter
     def month(self, month):
         self.__month = month
@@ -103,7 +195,6 @@ class Time:
     @property
     def day(self):
         return self.__day
-
     @day.setter
     def day(self, day):
         self.__day = day
@@ -111,7 +202,6 @@ class Time:
     @property
     def hour(self):
         return self.__hour
-
     @hour.setter
     def hour(self, hour):
         self.hour = hour
@@ -119,7 +209,6 @@ class Time:
     @property
     def minute(self):
         return self.__minute
-
     @minute.setter
     def minute(self, minute):
         self.__minute = minute
@@ -127,14 +216,49 @@ class Time:
     @property
     def sec(self):
         return self.__sec
-
     @sec.setter
     def sec(self, sec):
         self.__sec = sec
 
 class Data:
-    def __init__(self, year=0 , month=0, day=0, hour=0, min=0, sec=0):
-        self.
+    def __init__(self, a_plus=0, a_minus=0, r_plus=0, r_minus=0, tariff = 0):
+        self.__a_plus = a_plus
+        self.__a_minus = a_minus
+        self.__r_plus = r_plus
+        self.__r_minus = r_minus
+        self.__tariff = tariff
 
+    @property
+    def tariff(self):
+        return self.tariff
+    @tariff.setter
+    def tariff(self, tariff):
+        self.__tariff = tariff
 
+    @property
+    def a_plus(self):
+        return self.__a_plus
+    @a_plus.setter
+    def a_plus(self, a_plus):
+        self.__a_plus = a_plus
 
+    @property
+    def a_minus(self):
+        return self.__a_minus
+    @a_minus.setter
+    def a_minus(self, a_minus):
+        self.__a_minus = a_minus
+
+    @property
+    def r_plus(self):
+        return self.__r_plus
+    @r_plus.setter
+    def r_plus(self, r_plus):
+        self.__r_plus = r_plus
+
+    @property
+    def r_minus(self):
+        return self.__r_minus
+    @r_minus.setter
+    def r_minus(self, r_minus):
+        self.__r_minus = r_minus

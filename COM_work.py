@@ -40,7 +40,7 @@ class COM_worker():
         while call != 0:
             data = self.serial_object.read()  # пытается считать 1 байт, если это удалось, то дальше этот байт сумируется с результатом метода readLine()
             if data != b'':
-                self.buff += data + self.serial_object.readline()
+                self.buff += data + self.serial_object.read()
                 self.serial_object.timeout = 2
             else:
                 call = 0  # Если вышел таймаут ожидания одного байта, то цикл прекращается
