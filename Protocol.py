@@ -5,13 +5,14 @@ import struct
 class CC301Protocol:
 
     def __init__(self):
-        self.__buff = []
+        self.__buff = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
         self.__crc = CRC()
         self.__checkParam = 0
         self.__checkAddr = 0
         self.__strResult = ""
         self.__data = Data()
         self.__time = Time()
+        self.__Ke = 0  # weight coefficient
 
 
     @property
@@ -63,6 +64,13 @@ class CC301Protocol:
     def time(self, time):
         self.__time = time
 
+    @property
+    def Ke(self):
+        return self.__Ke
+    @Ke.setter
+    def Ke(self, Ke):
+        self.__Ke = Ke
+
     # method create a message to meter
     def create_data_request(self, addr, parametr, offset, tariff):
         self.buff[0] = addr # байт сетевого адреса, на байты 0x00 и 0xFF отвечают все счетчики
@@ -77,10 +85,9 @@ class CC301Protocol:
         self.crc.CRC8(self.buff, 6)
 
     def process_cc301_data(self, inbuf):
-
         if self.checkAnswer(inbuf):
-            # date/time
-            if inbuf[2] == 32:
+            # date current/ release date
+            if inbuf[2] == 32 or inbuf[2] == 19:
                 self.time.year = 2000 + inbuf[9]
                 self.time.month = inbuf[8]
                 self.time.day = inbuf[7]
@@ -91,20 +98,63 @@ class CC301Protocol:
 
             # by the beginning of the day/month/year
             elif inbuf[2] == 42 or inbuf[2] == 43 or inbuf[2] == 44:
-                self.processingAnswer(inbuf)
+                self.processingReadAnswer(inbuf)
 
             # for the day/month/year
             elif inbuf[2] == 2 or inbuf[2] == 3 or inbuf == 4:
-                self.processingAnswer(inbuf)
+                self.processingReadAnswer(inbuf)
 
             # for the sum value, average 3-min/15-min
             elif inbuf[2] == 1 or inbuf[2] == 5 or inbuf[2] == 6:
-                self.processingAnswer(inbuf)
+                self.processingReadAnswer(inbuf)
+
+            # identification device number
+            elif inbuf[2] == 0:
+                print(inbuf[4])     # - group
+                print(inbuf[5])     # - code in group
+
+            # network address
+            elif inbuf[2] == 21:
+                print(inbuf[4])
+
+            # device type
+            elif inbuf[2] == 17:
+                print(self.fromBytesToStr(inbuf, 4, 4+17))
+
+            # factor number
+            elif inbuf[2] == 18:
+                print(self.fromBytesToStr(inbuf, 4, 4+10))
+
+            # version and CRCprogramming
+            elif inbuf[2] == 20:
+                print(self.fromBytesToStr(inbuf, 4, 4+4))
+
+            # User ID
+            elif inbuf[2] == 22:
+                print(self.fromBytesToStr(inbuf, 4, 4+8))
+
+            # weight coefficient
+            elif inbuf[2] == 24:
+                byte_arr = bytearray(b'')
+                byte_arr.append(inbuf[8])
+                byte_arr.append(inbuf[9])
+                self.Ke = int.from_bytes(byte_arr, byteorder='big')
+                self.Ke = self.Ke/1000000.0
+
+            # sres
+            elif inbuf[2] == 36:
+                list = self.processingBytes(inbuf)
 
 
+
+    def fromBytesToStr(self, inbuf, start, end):
+        byte_arr = bytearray(b'')
+        for i in range(start, end):
+            byte_arr.append(inbuf[i])
+        return bytes.decode(bytes(byte_arr), "ascii")
 
     #processing answer and save in struct Data()
-    def processingAnswer(self, inbuf):
+    def processingReadAnswer(self, inbuf):
         byte_arr = bytearray(b'')
         byte_arr.append(inbuf[4])
         byte_arr.append(inbuf[5])
@@ -126,6 +176,16 @@ class CC301Protocol:
         byte_arr[2] = inbuf[14]
         byte_arr[3] = inbuf[15]
         self.data.r_minus = struct.unpack('f', byte_arr)
+
+    # for sres
+    def processingBytes(self, inbuf):
+        list = [self.data.a_plus, self.data.a_minus, self.data.r_plus, self.data.r_minus]
+        byte_arr = bytearray(b'')
+        for i in range(4):
+            byte_arr.append(inbuf[4 + i*2])
+            byte_arr.append(inbuf[5 + i*2])
+            list[i] = int.from_bytes(byte_arr, byteorder='big')
+        return list
 
     # method check correct answer or not, return bool
     def checkAnswer(self, inbuf):
