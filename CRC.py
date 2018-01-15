@@ -43,7 +43,7 @@ class CRC():
     ]
 
     # Метод расчета CRC для счетчика CC-301
-    def CRC8(self, buf, cnt):
+    def CRC16(self, buf, cnt):
         Result = True
         CRChi = 0xFF
         CRClo = 0xFF

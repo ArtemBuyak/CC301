@@ -32,10 +32,12 @@ str[3] = 0x00
 str.reverse()
 i = 6
 i /= 2
+a = 4
 #print(struct.unpack('h', byte_arr))
-byte_arr = bytearray(b'\x64\x32')
+byte_arr = bytearray(b'\x64\x32\x33\25')
 #byte_arr.append(0x15)
 #print(byte_arr)
 print(int.from_bytes(byte_arr, byteorder='big')/1000000.0)
 #print(bytes.decode(bytes(byte_arr), "ascii"))
 print(b"abcde".decode("ascii"))
+print(struct.unpack("f", byte_arr))
