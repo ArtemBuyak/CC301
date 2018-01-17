@@ -42,3 +42,7 @@ print(int.from_bytes(byte_arr, byteorder='big')/1000000.0)
 print(b"abcde".decode("ascii"))
 byte_arr.reverse()
 print(struct.unpack("f", bytes(byte_arr)))
+k = 0x0f
+k = k & (0x01 << 3)
+if (k) == 2**3:
+    print(bin(k))

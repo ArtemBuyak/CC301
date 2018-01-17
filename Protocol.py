@@ -508,7 +508,7 @@ class StrumenTS_05_07Protocol():
                 test = self.contour_definition(inbuf)
 
                 for i in sorted(test.keys()):
-                    if (int(i) + 1) != self.contour and self.contour != 0:
+                    if (self.contour & (0x01 << int(i))) != 2**int(i) and self.contour != 0:
                         continue
                     # Count of parameters depends on the type of contour
                     self.dataList[int(i)].type = test[i]
