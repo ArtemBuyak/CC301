@@ -363,16 +363,17 @@ class StrumenTS_05_07Protocol():
         self.__port = port
 
     # method create a message to meter for parametrs : 0 - 192
-    def create_data_request(self, addr, parametr, offset, tariff):
+    def create_data_request(self, addr, parametr, offset, tariff, contour):
         self.buff[0] = addr  # байт сетевого адреса, на байты 0x00 и 0xFF отвечают все счетчики
         self.buff[1] = 0x03  # функция, для чтения нужно 3(4), на выбор, но в описании рекомендуют 3
         self.buff[2] = parametr
         self.buff[3] = offset
         self.buff[4] = tariff  # 0 - бестарифное значение, 1...8 - соответсвенные тарифы
-        self.buff[5] = 0x00  # уточнение, пока что в первом приближении будет равно 0
+        self.buff[5] = contour  # уточнение, пока что в первом приближении будет равно 0
         self.checkAddr = addr
         self.checkParam = parametr
         self.crc.CRC16(self.buff, 6)
+        return self.buff
 
     # for parametrs : 192 - 200
     def create_archive_request(self, addr,  parametr, P1, P2, P3, P4):
@@ -383,10 +384,11 @@ class StrumenTS_05_07Protocol():
         self.arch_buff[4] = P2  # for day archive:   1 - month, 2 - day, 3 - reserve, 4 - contour
         self.arch_buff[5] = P3  # for month archive: 1 - year, 2 - month, 3 - reserve, 4 - contour
         self.arch_buff[6] = P4  # for year archive : 1 - year, 2 - reserve, 3 - reserve, 4 - contour
-        self.crc.CRC16(self.buff, 7)
+        self.crc.CRC16(self.arch_buff, 7)
 
     def checkAnswer(self, inbuf):
         if not self.crc.CRC16(inbuf, (len(inbuf) - 2)):
+            print("Not correct CRC")
             return False
 
         if inbuf[3] == 0:
@@ -423,7 +425,9 @@ class StrumenTS_05_07Protocol():
         if inbuf[0] != self.checkAddr:
             self.strResult = "Адрес в ответной посылке не соответствует адресу в запросе"
             return False
-        if inbuf[1] != 0x03 or inbuf[1] != 0x04:
+        if inbuf[1] == 0x03 or inbuf[1] == 0x04:
+            pass
+        else:
             self.strResult = "Номер команды в ответной посылке не соответствует номеру команды в запросе."
             return False
         if inbuf[2] != self.checkParam:
@@ -432,8 +436,7 @@ class StrumenTS_05_07Protocol():
         return True
 
     def processing_data(self, inbuf):
-        if self.checkAnswer(inbuf):
-
+        if self.checkAnswer(bytearray(inbuf)):
             # GROUP CONST -------------------------------------------
 
             # identification device number
@@ -491,7 +494,9 @@ class StrumenTS_05_07Protocol():
                 self.counter = 6
                 test = self.contour_definition(inbuf)
 
-                for i in test.keys():
+                for i in sorted(test.keys()):
+                    if (int(i) + 1) != self.buff[5] and self.buff[5] != 0:
+                        continue
                     # Count of parameters depends on the type of contour
                     self.dataList[int(i)].type = test[i]
                     self.dataList[int(i)].number_of_contour = int(i)
@@ -548,7 +553,9 @@ class StrumenTS_05_07Protocol():
                 self.counter = 6
                 test = self.contour_definition(inbuf)
 
-                for i in test.keys():
+                for i in sorted(test.keys()):
+                    if (int(i) + 1) != self.buff[5] and self.buff[5] != 0:
+                        continue
                     # Count of parameters depends on the type of contour
                     self.dataList[int(i)].type = test[i]
                     self.dataList[int(i)].number_of_contour = int(i)
@@ -585,12 +592,13 @@ class StrumenTS_05_07Protocol():
             elif inbuf[2] == 46: # 0x2E
                 self.counter = 6
                 test = self.contour_definition(inbuf)
-
-                for i in test.keys():
+                for i in sorted(test.keys()):
+                    if (int(i) + 1) != self.buff[5] and self.buff[5] != 0:
+                        continue
                     self.dataList[int(i)].number_of_contour = int(i)
                     self.dataList[int(i)].type = test[i]
-                    if i == 1:
-                        self.dataList[int(i)].V1 = struct.unpack('f', self.automation_bytearray(inbuf))
+                    if test[i] == 1:
+                        self.dataList[int(i)].V1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
                         self.dataList[int(i)].Tn = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
                         self.dataList[int(i)].Terr = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
                         self.dataList[int(i)].Terr1 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
@@ -599,16 +607,16 @@ class StrumenTS_05_07Protocol():
                         self.dataList[int(i)].Terr4 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
                         self.dataList[int(i)].Err = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
                         self.dataList[int(i)].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
-                        self.dataList[int(i)].Gv1 = struct.unpack('f', self.automation_bytearray(inbuf))
+                        self.dataList[int(i)].Gv1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
 
-                    elif i == 2 or i == 3 or i == 4:
-                        self.dataList[int(i)].Q1 = struct.unpack('f', self.automation_bytearray(inbuf))
-                        self.dataList[int(i)].V1 = struct.unpack('f', self.automation_bytearray(inbuf))
-                        self.dataList[int(i)].M1 = struct.unpack('f', self.automation_bytearray(inbuf))
-                        self.dataList[int(i)].t1 = struct. unpack('f', self.automation_bytearray(inbuf))
-                        self.dataList[int(i)].t2 = struct.unpack('f', self.automation_bytearray(inbuf))
-                        self.dataList[int(i)].p1 = struct.unpack('f', self.automation_bytearray(inbuf))
-                        self.dataList[int(i)].p2 = struct.unpack('f', self.automation_bytearray(inbuf))
+                    elif test[i] == 2 or test[i] == 3 or test[i] == 4:
+                        self.dataList[int(i)].Q1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                        self.dataList[int(i)].V1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                        self.dataList[int(i)].M1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                        self.dataList[int(i)].t1 = struct. unpack('f', self.automation_bytearray(inbuf))[0]
+                        self.dataList[int(i)].t2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                        self.dataList[int(i)].p1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                        self.dataList[int(i)].p2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
                         self.dataList[int(i)].Tn = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
                         self.dataList[int(i)].Terr = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
                         self.dataList[int(i)].Terr1 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
@@ -617,23 +625,23 @@ class StrumenTS_05_07Protocol():
                         self.dataList[int(i)].Terr4 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
                         self.dataList[int(i)].Err = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
                         self.dataList[int(i)].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
-                        self.dataList[int(i)].Gv1 = struct.unpack('f', self.automation_bytearray(inbuf))
-                        self.dataList[int(i)].Gm1 = struct.unpack('f', self.automation_bytearray(inbuf))
-                        self.dataList[int(i)].P1 = struct.unpack('f', self.automation_bytearray(inbuf))
+                        self.dataList[int(i)].Gv1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                        self.dataList[int(i)].Gm1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                        self.dataList[int(i)].P1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
 
-                    elif i == 5:
-                        self.dataList[int(i)].Q1 = struct.unpack('f', self.automation_bytearray(inbuf))
-                        self.dataList[int(i)].Q2 = struct.unpack('f', self.automation_bytearray(inbuf))
-                        self.dataList[int(i)].V1 = struct.unpack('f', self.automation_bytearray(inbuf))
-                        self.dataList[int(i)].V2 = struct.unpack('f', self.automation_bytearray(inbuf))
-                        self.dataList[int(i)].M1 = struct.unpack('f', self.automation_bytearray(inbuf))
-                        self.dataList[int(i)].M2 = struct.unpack('f', self.automation_bytearray(inbuf))
-                        self.dataList[int(i)].t1 = struct.unpack('f', self.automation_bytearray(inbuf))
-                        self.dataList[int(i)].t2 = struct.unpack('f', self.automation_bytearray(inbuf))
-                        self.dataList[int(i)].t3 = struct.unpack('f', self.automation_bytearray(inbuf))
-                        self.dataList[int(i)].p1 = struct.unpack('f', self.automation_bytearray(inbuf))
-                        self.dataList[int(i)].p2 = struct.unpack('f', self.automation_bytearray(inbuf))
-                        self.dataList[int(i)].p3 = struct.unpack('f', self.automation_bytearray(inbuf))
+                    elif test[i] == 5:
+                        self.dataList[int(i)].Q1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                        self.dataList[int(i)].Q2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                        self.dataList[int(i)].V1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                        self.dataList[int(i)].V2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                        self.dataList[int(i)].M1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                        self.dataList[int(i)].M2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                        self.dataList[int(i)].t1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                        self.dataList[int(i)].t2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                        self.dataList[int(i)].t3 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                        self.dataList[int(i)].p1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                        self.dataList[int(i)].p2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                        self.dataList[int(i)].p3 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
                         self.dataList[int(i)].Tn = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
                         self.dataList[int(i)].Terr = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
                         self.dataList[int(i)].Terr1 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
@@ -642,12 +650,13 @@ class StrumenTS_05_07Protocol():
                         self.dataList[int(i)].Terr4 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
                         self.dataList[int(i)].Err = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
                         self.dataList[int(i)].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
-                        self.dataList[int(i)].Gv1 = struct.unpack('f', self.automation_bytearray(inbuf))
-                        self.dataList[int(i)].Gv2 =struct.unpack('f', self.automation_bytearray(inbuf))
-                        self.dataList[int(i)].Gm1 = struct.unpack('f', self.automation_bytearray(inbuf))
-                        self.dataList[int(i)].Gm2 = struct.unpack('f', self.automation_bytearray(inbuf))
-                        self.dataList[int(i)].P1 = struct.unpack('f', self.automation_bytearray(inbuf))
-                        self.dataList[int(i)].P2 = struct.unpack('f', self.automation_bytearray(inbuf))
+                        self.dataList[int(i)].Gv1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                        self.dataList[int(i)].Gv2 =struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                        self.dataList[int(i)].Gm1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                        self.dataList[int(i)].Gm2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                        self.dataList[int(i)].P1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                        self.dataList[int(i)].P2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                    print(self.dataList[int(i)])
 
             # END CURRENT DATA---------------------------------------
 
@@ -669,8 +678,9 @@ class StrumenTS_05_07Protocol():
                         self.dataList[int(i)].Q2 = struct.unpack('f', self.automation_bytearray(inbuf))
 
             # END GROUP THERMAL ENERGY
-
-        return self.dataList
+            return self.dataList
+        else:
+            print(self.strResult)
 
     def contour_definition(self, inbuf):
         test = {}
@@ -687,7 +697,7 @@ class StrumenTS_05_07Protocol():
     def automation_bytearray(self, inbuf, count=4):
         byte_arr = bytearray(b'')
         for i in range(count):
-            byte_arr.append(inbuf[self.counter]) #4
+            byte_arr.append(inbuf[self.counter])  # 4
             self.counter += 1  # 5
         return byte_arr
 
@@ -778,7 +788,7 @@ class Time:
         return self.__hour
     @hour.setter
     def hour(self, hour):
-        self.hour = hour
+        self.__hour = hour
 
     @property
     def minute(self):
@@ -889,35 +899,35 @@ class WarmData:
 
     @property
     def Q1(self):
-        return self.Q1
+        return self.__Q1
     @Q1.setter
     def Q1(self, Q1):
         self.__Q1 = Q1
 
     @property
     def Q2(self):
-        return self.Q2
+        return self.__Q2
     @Q2.setter
     def Q2(self, Q2):
         self.__Q2 = Q2
 
     @property
     def M1(self):
-        return self.M1
+        return self.__M1
     @M1.setter
     def M1(self, M1):
         self.__M1 = M1
 
     @property
     def M2(self):
-        return self.M2
+        return self.__M2
     @M2.setter
     def M2(self, M2):
         self.__M2 = M2
 
     @property
     def V1(self):
-        return self.V1
+        return self.__V1
 
     @V1.setter
     def V1(self, V1):
@@ -925,105 +935,105 @@ class WarmData:
 
     @property
     def V2(self):
-        return self.V2
+        return self.__V2
     @V2.setter
     def V2(self, V2):
         self.__V2 = V2
 
     @property
     def t1(self):
-        return self.t1
+        return self.__t1
     @t1.setter
     def t1(self, t1):
         self.__t1 = t1
 
     @property
     def t2(self):
-        return self.t2
+        return self.__t2
     @t2.setter
     def t2(self, t2):
         self.__t2 = t2
 
     @property
     def t3(self):
-        return self.t3
+        return self.__t3
     @t3.setter
     def t3(self, t3):
         self.__t3 = t3
 
     @property
     def p1(self):
-        return self.p1
+        return self.__p1
     @p1.setter
     def p1(self, p1):
         self.__p1 = p1
 
     @property
     def p2(self):
-        return self.p2
+        return self.__p2
     @p2.setter
     def p2(self, p2):
         self.__p2 = p2
 
     @property
     def p3(self):
-        return self.p3
+        return self.__p3
     @p3.setter
     def p3(self, p3):
         self.__p3 = p3
 
     @property
     def Tn(self):
-        return self.Tn
+        return self.__Tn
     @Tn.setter
     def Tn(self, Tn):
         self.__Tn = Tn
 
     @property
     def Terr(self):
-        return self.Terr
+        return self.__Terr
     @Terr.setter
     def Terr(self, Terr):
         self.__Terr = Terr
 
     @property
     def Terr1(self):
-        return self.Terr1
+        return self.__Terr1
     @Terr1.setter
     def Terr1(self, Terr1):
         self.__Terr1 = Terr1
 
     @property
     def Terr2(self):
-        return self.Terr2
+        return self.__Terr2
     @Terr2.setter
     def Terr2(self, Terr2):
         self.__Terr2 = Terr2
 
     @property
     def Terr3(self):
-        return self.Terr3
+        return self.__Terr3
     @Terr3.setter
     def Terr3(self, Terr3):
         self.__Terr3 = Terr3
 
     @property
     def Terr4(self):
-        return self.Terr4
+        return self.__Terr4
     @Terr4.setter
     def Terr4(self, Terr4):
         self.__Terr4 = Terr4
 
     @property
     def Err(self):
-        return self.Err
+        return self.__Err
     @Err.setter
     def Err(self, Err):
         self.__Err = Err
 
     @property
     def Act(self):
-        return self.Act
+        return self.__Act
     @Act.setter
     def Act(self, Act):
         self.__Act = Act
@@ -1071,4 +1081,5 @@ class WarmData:
         self.__P2 = P2
 
     def __str__(self):
-        return "Q1 = %f, Q2 = %f, V1 = %f, V2 = %f, M1 = %f, M2 = %f" % (self.Q1, self.Q2, self.V1, self.V2, self.M1, self.M2)
+        return "Type of system %i  Q1 = %f, Q2 = %f, V1 = %f, V2 = %f, M1 = %f, M2 = %f, t1 = %f, t2 = %f, t3 = %f, p1 = %f, p2 = %f, p3 = %f" \
+               % (self.type, self.Q1, self.Q2, self.V1, self.V2, self.M1, self.M2, self.t1, self.t2, self.t3, self.p1, self.p2, self.p3)

@@ -54,7 +54,7 @@ class CRC():
             CRChi = CRClo ^ self.tblCRChi[idx]
             CRClo = self.tblCRClo[idx]
         if (CRClo != buf[cnt]) and (CRChi != buf[cnt + 1]):
+            buf[cnt] = CRClo
+            buf[cnt + 1] = CRChi
             Result = False
-        buf[cnt] = CRClo
-        buf[cnt + 1] = CRChi
         return Result
