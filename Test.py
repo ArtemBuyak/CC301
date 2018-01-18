@@ -34,15 +34,7 @@ i = 6
 i /= 2
 a = 4
 #print(struct.unpack('h', byte_arr))
-byte_arr = bytearray(b'\x7b\xfc\xb2\44')
-#byte_arr.append(0x15)
-#print(byte_arr)
-print(int.from_bytes(byte_arr, byteorder='big')/1000000.0)
-#print(bytes.decode(bytes(byte_arr), "ascii"))
-print(b"abcde".decode("ascii"))
-byte_arr.reverse()
-print(struct.unpack("f", bytes(byte_arr)))
-k = 0x0f
-k = k & (0x01 << 3)
-if (k) == 2**3:
-    print(bin(k))
+byte_arr = bytearray(b'\x71\x5d\x09\x46')
+print(struct.unpack("f", byte_arr)[0])
+
+

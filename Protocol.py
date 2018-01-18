@@ -396,6 +396,10 @@ class StrumenTS_05_07Protocol():
         self.checkParam = parametr
         self.contour = P4
         self.crc.CRC16(self.arch_buff, 7)
+        print("Request:")
+        for i in range(len(self.arch_buff)):
+            print("[" + str(i) + "] --- " + str(hex(self.arch_buff[i])), end=", ")
+        print()
         return self.arch_buff
 
     def checkAnswer(self, inbuf):
@@ -600,6 +604,36 @@ class StrumenTS_05_07Protocol():
                         self.dataList[int(i)].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
                     print(self.dataList[int(i)])
 
+            # On a specific parametr
+
+            # hour
+            elif inbuf[2] == 196:  # C4
+                self.counter = 5
+                test = {}
+                test[(inbuf[4] & 0x0f)] = inbuf[4] >> 4
+                for i in test.keys():
+                    self.dataList[int(i)].number_of_contour = int(i)
+                    self.dataList[int(i)].type = test[i]
+                    if test[i] == 1:
+                        if self.arch_buff[4] & 0x02:
+                            self.dataList[int(i)].V1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                        if self.arch_buff[4] & 0x20:
+                            self.dataList[int(i)].Tn = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                        if self.arch_buff[4] & 0x40:
+                            self.dataList[int(i)] = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                        if self.arch_buff[4] & 0x80:
+                            self.dataList[int(i)].Terr1 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
+                            self.dataList[int(i)].Terr2 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
+                            self.dataList[int(i)].Terr3 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
+                            self.dataList[int(i)].Terr4 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
+                        if self.arch_buff[5] & 0x01:
+                            self.dataList[int(i)].Err = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                        if self.arch_buff[5] & 0x02:
+                            self.dataList[int(i)].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
+
+                    elif test[i] == 2 or test[i] == 3 or test[i] == 4 or test[i] == 5:
+                        pass
+
             # END DATA ARCHIVE***************************************
 
             # CURRENT DATA-------------------------------------------
@@ -704,6 +738,7 @@ class StrumenTS_05_07Protocol():
             return self.dataList
         else:
             print(self.strResult)
+
 
     def contour_definition(self, inbuf):
         test = {}
