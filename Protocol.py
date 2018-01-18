@@ -691,6 +691,27 @@ class StrumenTS_05_07Protocol():
                             self.dataList[int(i)].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
                     print(self.dataList[int(i)])
 
+            # day/month/year
+
+            elif inbuf[2] == 197 or inbuf[2] == 198 or inbuf[2] == 199:  # 0xC5, 0xC6, 0xC7
+                self.counter = 5
+                test = {}
+                test[(inbuf[4] & 0x0f)] = inbuf[4] >> 4
+                for i in test.keys():
+                    self.dataList[int(i)].number_of_contour = int(i)
+                    self.dataList[int(i)].type = test[i]
+                    if test[i] == 1:
+                        if self.arch_buff[4] & 0x02:
+                            self.dataList[int(i)].V1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                        if self.arch_buff[4] & 0x20:
+                            self.dataList[int(i)].Tn = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                        if self.arch_buff[4] & 0x40:
+                            self.dataList[int(i)] = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                        if self.arch_buff[5] & 0x01:
+                            self.dataList[int(i)].Err = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                        if self.arch_buff[5] & 0x02:
+                            self.dataList[int(i)].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
+
             # END DATA ARCHIVE***************************************
 
             # CURRENT DATA-------------------------------------------
@@ -1199,5 +1220,5 @@ class WarmData:
         self.__P2 = P2
 
     def __str__(self):
-        return "Type of system %i  Q1 = %.3f, Q2 = %.3f, V1 = %.3f, V2 = %.3f, M1 = %.3f, M2 = %.3f, t1 = %.3f, t2 = %.3f, t3 = %.3f, p1 = %.3f, p2 = %.3f, p3 = %.3f." \
-               % (self.type, self.Q1, self.Q2, self.V1, self.V2, self.M1, self.M2, self.t1, self.t2, self.t3, self.p1, self.p2, self.p3)
+        return "Contour: %i, type of system: %i Q1 = %.3f, Q2 = %.3f, V1 = %.3f, V2 = %.3f, M1 = %.3f, M2 = %.3f, t1 = %.3f, t2 = %.3f, t3 = %.3f, p1 = %.3f, p2 = %.3f, p3 = %.3f." \
+               % (self.number_of_contour, self.type, self.Q1, self.Q2, self.V1, self.V2, self.M1, self.M2, self.t1, self.t2, self.t3, self.p1, self.p2, self.p3)
