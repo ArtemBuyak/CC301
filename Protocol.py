@@ -396,10 +396,6 @@ class StrumenTS_05_07Protocol():
         self.checkParam = parametr
         self.contour = P4
         self.crc.CRC16(self.arch_buff, 7)
-        print("Request:")
-        for i in range(len(self.arch_buff)):
-            print("[" + str(i) + "] --- " + str(hex(self.arch_buff[i])), end=", ")
-        print()
         return self.arch_buff
 
     def checkAnswer(self, inbuf):
@@ -711,6 +707,7 @@ class StrumenTS_05_07Protocol():
                             self.dataList[int(i)].Err = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
                         if self.arch_buff[5] & 0x02:
                             self.dataList[int(i)].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
+
                     elif test[i] == 2 or test[i] == 3 or test[i] == 4:
                         if self.arch_buff[4] & 0x01:
                             self.dataList[int(i)].Q1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
@@ -727,6 +724,25 @@ class StrumenTS_05_07Protocol():
                         if self.arch_buff[5] & 0x02:
                             self.dataList[int(i)].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
 
+                    elif test[i] == 5:
+                        if self.arch_buff[4] & 0x01:
+                            self.dataList[int(i)].Q1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            self.dataList[int(i)].Q2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                        if self.arch_buff[4] & 0x02:
+                            self.dataList[int(i)].V1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            self.dataList[int(i)].V2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                        if self.arch_buff[4] & 0x04:
+                            self.dataList[int(i)].M1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            self.dataList[int(i)].M2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                        if self.arch_buff[4] & 0x20:
+                            self.dataList[int(i)].Tn = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                        if self.arch_buff[4] & 0x40:
+                            self.dataList[int(i)] = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                        if self.arch_buff[5] & 0x01:
+                            self.dataList[int(i)].Err = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                        if self.arch_buff[5] & 0x02:
+                            self.dataList[int(i)].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
+                    print(self.dataList[int(i)])
             # END DATA ARCHIVE***************************************
 
             # CURRENT DATA-------------------------------------------
