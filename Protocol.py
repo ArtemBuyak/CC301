@@ -659,7 +659,37 @@ class StrumenTS_05_07Protocol():
                             self.dataList[int(i)].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
 
                     elif test[i] == 5:
-                        pass
+                        if self.arch_buff[4] & 0x01:
+                            self.dataList[int(i)].Q1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            self.dataList[int(i)].Q2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                        if self.arch_buff[4] & 0x02:
+                            self.dataList[int(i)].V1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            self.dataList[int(i)].V2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                        if self.arch_buff[4] & 0x04:
+                            self.dataList[int(i)].M1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            self.dataList[int(i)].M2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                        if self.arch_buff[4] & 0x08:
+                            self.dataList[int(i)].t1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            self.dataList[int(i)].t2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            self.dataList[int(i)].t3 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                        if self.arch_buff[4] & 0x10:
+                            self.dataList[int(i)].p1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            self.dataList[int(i)].p2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            self.dataList[int(i)].p3 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                        if self.arch_buff[4] & 0x20:
+                            self.dataList[int(i)].Tn = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                        if self.arch_buff[4] & 0x40:
+                            self.dataList[int(i)] = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                        if self.arch_buff[4] & 0x80:
+                            self.dataList[int(i)].Terr1 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
+                            self.dataList[int(i)].Terr2 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
+                            self.dataList[int(i)].Terr3 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
+                            self.dataList[int(i)].Terr4 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
+                        if self.arch_buff[5] & 0x01:
+                            self.dataList[int(i)].Err = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                        if self.arch_buff[5] & 0x02:
+                            self.dataList[int(i)].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
+                    print(self.dataList[int(i)])
 
             # END DATA ARCHIVE***************************************
 
