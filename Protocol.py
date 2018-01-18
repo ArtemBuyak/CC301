@@ -711,6 +711,21 @@ class StrumenTS_05_07Protocol():
                             self.dataList[int(i)].Err = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
                         if self.arch_buff[5] & 0x02:
                             self.dataList[int(i)].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
+                    elif test[i] == 2 or test[i] == 3 or test[i] == 4:
+                        if self.arch_buff[4] & 0x01:
+                            self.dataList[int(i)].Q1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                        if self.arch_buff[4] & 0x02:
+                            self.dataList[int(i)].V1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                        if self.arch_buff[4] & 0x04:
+                            self.dataList[int(i)].M1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                        if self.arch_buff[4] & 0x20:
+                            self.dataList[int(i)].Tn = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                        if self.arch_buff[4] & 0x40:
+                            self.dataList[int(i)] = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                        if self.arch_buff[5] & 0x01:
+                            self.dataList[int(i)].Err = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                        if self.arch_buff[5] & 0x02:
+                            self.dataList[int(i)].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
 
             # END DATA ARCHIVE***************************************
 
