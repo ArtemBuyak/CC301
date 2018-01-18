@@ -33,8 +33,11 @@ str.reverse()
 i = 6
 i /= 2
 a = 4
+list = [0x00, 0x00, 0x00, 0x44]
+list[2] = 45
+
 #print(struct.unpack('h', byte_arr))
-byte_arr = bytearray(b'\x71\x5d\x09\x46')
+byte_arr = bytearray(b'\x00\x00\x2d\x44')
 print(struct.unpack("f", byte_arr)[0])
 
 

@@ -45,6 +45,7 @@ class Connection:
 
     def receive_data(self):
         try:
+            self.sock.settimeout(5.0)
             data = self.sock.recv(1024)
         except TimeoutError:
             return 1
