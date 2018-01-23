@@ -41,3 +41,6 @@ print(struct.unpack("f", byte_arr)[0])
 k = 0x04
 print(str(k))
 
+listik = [0x12, 0x13]
+print(type(listik[0]))
+

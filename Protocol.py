@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 from CRC import CRC
 import struct
 
@@ -81,6 +83,15 @@ class CC301Protocol:
 
     # method create a message to meter
     def create_data_request(self, addr, parametr, offset, tariff):
+
+        """
+        Метод вернет 0, в случае возникновения ошибки при формировании посылки
+
+        """
+        # ошибка возврата, если переданы значения больше максимального значения для byte
+        if addr > 255 or parametr > 255 or offset > 255 or tariff > 255:
+            return 0
+
         self.buff[0] = addr # байт сетевого адреса, на байты 0x00 и 0xFF отвечают все счетчики
         self.buff[1] = 0x03 # функция, для чтения нужно 3(4), на выбор, но в описании рекомендуют 3
         self.buff[2] = parametr
@@ -91,139 +102,191 @@ class CC301Protocol:
         self.checkParam = parametr
         self.data.tariff = tariff
         self.crc.CRC16(self.buff, 6)
+        return bytes(self.buff)
 
     def processing_data(self, inbuf):
+
+        """
+
+        Метод обработки входящей от счетчика посылки. В зависимости от байта параметра вызывается определенный case обработки.
+        Возвращает 1, в случае возникновения ошибки индекса, в случае других ошибок вернется 0.
+
+        """
+
         if self.checkAnswer(inbuf):
-            # date current
-            if inbuf[2] == 32:  # 0x20
-                self.time.year = 2000 + inbuf[9]
-                self.time.month = inbuf[8]
-                self.time.day = inbuf[7]
-                self.time.hour = inbuf[6]
-                self.time.minute = inbuf[5]
-                self.time.sec = inbuf[4]
-                print("Year = %d, month = %d, day = %d, HH:MM:SS = %d:%d:%d" % (self.time.year, self.time.month, self.time.day, self.time.hour, self.time.minute, self.time.sec))
+            # date current/release date
+            if inbuf[2] == 32 or inbuf[2] == 19:  # 0x20, 0x13
+                try:
+                    self.time.year = 2000 + inbuf[9]
+                    self.time.month = inbuf[8]
+                    self.time.day = inbuf[7]
+                    self.time.hour = inbuf[6]
+                    self.time.minute = inbuf[5]
+                    self.time.sec = inbuf[4]
+                    return self.time
+                except IndexError:
+                    return 1
+                except Exception:
+                    return 0
 
             # by the beginning of the day/month/year
             elif inbuf[2] == 42 or inbuf[2] == 43 or inbuf[2] == 44:  # 0x2A, 0x2B, 0x2C
-                self.processingReadAnswer(inbuf)
+                return self.processingReadAnswer(inbuf)
 
             # for the day/month/year
             elif inbuf[2] == 2 or inbuf[2] == 3 or inbuf == 4:
-                self.processingReadAnswer(inbuf)
+                return self.processingReadAnswer(inbuf)
 
             # for the sum value, average 3-min/15-min
             elif inbuf[2] == 1 or inbuf[2] == 5 or inbuf[2] == 6:
-                self.processingReadAnswer(inbuf)
+                return self.processingReadAnswer(inbuf)
 
             # sres
             elif inbuf[2] == 36:  # 0x24
-                list = self.processingBytes(inbuf)
+                return self.processingBytes(inbuf)
 
 
             #GROUP CONST----------------------------------
 
             # identification device number
             elif inbuf[2] == 0:
-                print(inbuf[4])  # - group
-                print(inbuf[5])  # - code in group
+                result = "Идентификационный номер устройства: "
+                if len(str(inbuf[5])) == 1:
+                    result += "0" + str(inbuf[5])
+                else:
+                    result += str(inbuf[5])
+                if len(str(inbuf[4])) == 1:
+                    result += "0" + str(inbuf[4])
+                else:
+                    result += str(inbuf[4])
+                return result
 
             # device type
             elif inbuf[2] == 17: # 0x11
-                print(self.fromBytesToStr(inbuf, 4, 4+17))
+                return self.fromBytesToStr(inbuf, 4, 4+17)
 
             # factor number
             elif inbuf[2] == 18:  # 0x12
-                print(self.fromBytesToStr(inbuf, 4, 4+10))
-
-            # release date
-            elif inbuf[2] == 19:  # 0x13
-                self.time.year = 2000 + inbuf[9]
-                self.time.month = inbuf[8]
-                self.time.day = inbuf[7]
-                self.time.hour = inbuf[6]
-                self.time.minute = inbuf[5]
-                self.time.sec = inbuf[4]
-                print("Year = %d, month = %d, day = %d, HH:MM:SS = %d:%d:%d" % (
-                self.time.year, self.time.month, self.time.day, self.time.hour, self.time.minute, self.time.sec))
+                return self.fromBytesToStr(inbuf, 4, 4+10)
 
             # version and CRCprogramming
             elif inbuf[2] == 20:  # 0x14
-                print(self.fromBytesToStr(inbuf, 4, 4+4))
+                return self.fromBytesToStr(inbuf, 4, 4+4)
 
             # network address
             elif inbuf[2] == 21:  # 0x15
-                print(inbuf[4])
+                try:
+                    return inbuf[4]
+                except IndexError:
+                    return 1
+                except Exception:
+                    return 0
 
             # User ID
             elif inbuf[2] == 22:  # 0x16
-                print(self.fromBytesToStr(inbuf, 4, 4+8))
+                return self.fromBytesToStr(inbuf, 4, 4+8)
 
             # port settings
             elif inbuf[2] == 23:  # 0x17
-                byte_arr = bytearray(b'')
-                byte_arr.append(inbuf[4])
-                byte_arr.append(inbuf[5])
-                self.port.baudrate = int.from_bytes(byte_arr, byteorder='big')
-                self.port.type = inbuf[6]
-                self.port.count = inbuf[7]
-                self.port.parity = inbuf[8]
-                self.port.stop = inbuf[9]
+                try:
+                    byte_arr = bytearray(b'')
+                    byte_arr.append(inbuf[4])
+                    byte_arr.append(inbuf[5])
+                    self.port.baudrate = int.from_bytes(byte_arr, byteorder='big')
+                    self.port.type = inbuf[6]
+                    self.port.count = inbuf[7]
+                    self.port.parity = inbuf[8]
+                    self.port.stop = inbuf[9]
+                    return self.port
+                except IndexError:
+                    return 1
+                except Exception:
+                    return 0
 
             # weight coefficient
             elif inbuf[2] == 24:  # 0x18
-                byte_arr = bytearray(b'')
-                byte_arr.append(inbuf[8])
-                byte_arr.append(inbuf[9])
-                self.Ke = int.from_bytes(byte_arr, byteorder='big')
-                self.Ke = self.Ke/1000000.0
+                try:
+                    byte_arr = bytearray(b'')
+                    byte_arr.append(inbuf[8])
+                    byte_arr.append(inbuf[9])
+                    self.Ke = int.from_bytes(byte_arr, byteorder='big')
+                    self.Ke = self.Ke/1000000.0
+                except IndexError:
+                    return 1
+                except Exception:
+                    return 0
 
             #END GROUP CONST-----------------------------
+        else:
+            return 2
 
 
 
     def fromBytesToStr(self, inbuf, start, end):
-        byte_arr = bytearray(b'')
-        for i in range(start, end):
-            byte_arr.append(inbuf[i])
-        return bytes.decode(bytes(byte_arr), "ascii")
+        try:
+            byte_arr = bytearray(b'')
+            for i in range(start, end):
+                byte_arr.append(inbuf[i])
+            return bytes.decode(bytes(byte_arr), "ascii")
+        except IndexError:
+            return 1
+        except Exception:
+            return 0
+
 
     #processing answer and save in struct Data()
     def processingReadAnswer(self, inbuf):
-        byte_arr = bytearray(b'')
-        byte_arr.append(inbuf[4])
-        byte_arr.append(inbuf[5])
-        byte_arr.append(inbuf[6])
-        byte_arr.append(inbuf[7])
-        self.data.a_plus = struct.unpack('f', byte_arr)
-        byte_arr[0] = inbuf[8]
-        byte_arr[1] = inbuf[9]
-        byte_arr[2] = inbuf[10]
-        byte_arr[3] = inbuf[11]
-        self.data.a_minus = struct.unpack('f', byte_arr)
-        byte_arr[0] = inbuf[12]
-        byte_arr[1] = inbuf[13]
-        byte_arr[2] = inbuf[14]
-        byte_arr[3] = inbuf[15]
-        self.data.r_plus = struct.unpack('f', byte_arr)
-        byte_arr[0] = inbuf[12]
-        byte_arr[1] = inbuf[13]
-        byte_arr[2] = inbuf[14]
-        byte_arr[3] = inbuf[15]
-        self.data.r_minus = struct.unpack('f', byte_arr)
+        try:
+            byte_arr = bytearray(b'')
+            byte_arr.append(inbuf[4])
+            byte_arr.append(inbuf[5])
+            byte_arr.append(inbuf[6])
+            byte_arr.append(inbuf[7])
+            self.data.a_plus = struct.unpack('f', byte_arr)
+            byte_arr[0] = inbuf[8]
+            byte_arr[1] = inbuf[9]
+            byte_arr[2] = inbuf[10]
+            byte_arr[3] = inbuf[11]
+            self.data.a_minus = struct.unpack('f', byte_arr)
+            byte_arr[0] = inbuf[12]
+            byte_arr[1] = inbuf[13]
+            byte_arr[2] = inbuf[14]
+            byte_arr[3] = inbuf[15]
+            self.data.r_plus = struct.unpack('f', byte_arr)
+            byte_arr[0] = inbuf[12]
+            byte_arr[1] = inbuf[13]
+            byte_arr[2] = inbuf[14]
+            byte_arr[3] = inbuf[15]
+            self.data.r_minus = struct.unpack('f', byte_arr)
+            return self.data
+        except IndexError:
+            return 1
+        except Exception:
+            return 0
 
     # for sres
     def processingBytes(self, inbuf):
-        list = [self.data.a_plus, self.data.a_minus, self.data.r_plus, self.data.r_minus]
-        byte_arr = bytearray(b'')
-        for i in range(4):
-            byte_arr.append(inbuf[4 + i*2])
-            byte_arr.append(inbuf[5 + i*2])
-            list[i] = int.from_bytes(byte_arr, byteorder='big')
-        return list
+        try:
+            list = [self.data.a_plus, self.data.a_minus, self.data.r_plus, self.data.r_minus]
+            byte_arr = bytearray(b'')
+            for i in range(4):
+                byte_arr.append(inbuf[4 + i*2])
+                byte_arr.append(inbuf[5 + i*2])
+                list[i] = int.from_bytes(byte_arr, byteorder='big')
+            return list
+        except IndexError:
+            return 1
+        except Exception:
+            return 0
 
     # method check correct answer or not, return bool
     def checkAnswer(self, inbuf):
+        """
+
+        Вернет True, если входящая посылка соответствует протоколу, в остальных случаях - False.
+        В переменную strResult будет записано описание несоответсвия с протоколом.
+
+        """
         if not self.crc.CRC16(inbuf, (len(inbuf) - 2)):
             return False
 
@@ -270,6 +333,47 @@ class CC301Protocol:
 
 class StrumenTS_05_07Protocol():
 
+    """
+
+    Реализация протокола ТЕПЛОСЧЁТЧИКИ «СТРУМЕНЬ ТС-05», «СТРУМЕНЬ ТС-07»
+
+    Блок констант:
+
+    --------------------------------------------------------------------------------
+    METER_CONTOUR_1   - первый контур
+    METER_CONTOUR_2   - второй
+    METER_CONTOUR_3   - третий
+    METER_CONTOUR_4   - четвертый
+    METER_CONTOUR_5   - пятый
+
+    Значений параметров для считывания:
+    ID                - идентификационный номер устройства. Вызов (ADDR- адрес устр-ва, obj.ID, P1 - 0x00, P2 - 0x00, P3 - 0x00, P4 - 0x00).
+    DEVICE_TYPE       - тип прибора. Вызов аналогично ID.
+    FACTOR_NUMBER     - заводской номер. -//-.
+    RELEASE_DATE      - дата выпуска прибора. -//-.
+    CURRENT_DATE_TIME - текущее время и число. -//-.
+    PROGRAM_VERSION   - версия программы. Вызов -//-.
+    NETWORK_ADDRESS   - сетевой адрес прибора. -//-.
+    USER_ID           - идентификатор пользователя. -//-.
+    PORT_SETTINGS     - конфигурация порта связи. -//-.
+    ARCHIVE_ALL_VALUE_HOUR       - часовой архив(возвратит все значения данных). Вызов obj.pack(ADDR, obj.ARCHIVE_ALL_VALUE_HOUR, P1 - месяц, P2 - день, P3 - час, P4 - контур)
+    ARCHIVE_ALL_VALUE_DAY        - суточный архив(все значения). Вызов obj.pack(ADDR, obj.ARCHIVE_ALL_VAlUE_DAY, P1 - месяц, P2 - день, P3 - 0x00, P4 - контур)
+    ARCHIVE_ALL_VALUE_MONTH      - месячный архив(все значения). Вызов obj.pack(ADDR, obj.ARCHIVE_ALL_VAlUE_MONTH, P1 - год, P2 - месяц, P3- 0x00, P4 - контур)
+    ARCHIVE_ALL_VALUE_YEAR       - годовой архив(все значения). Вызов obj.pack(ADDR, obj.ARCHIVE_ALL_VAlUE_YEAR, P1 - год, P2 - 0x00, P3 - 0x00, P4 - контур)
+    ARCHIVE_SPECIFIC_VALUE_HOUR  - часовой архив(по маске). Вызов obj.pack(ADDR, obj.ARCHIVE_SPECIFIC_VALUE_HOUR, P1 - смещение(от 0 до 255), P2 - элумент записи())
+    ARCHIVE_SPECIFIC_VALUE_DAY   - часовой архив(по маске)
+    ARCHIVE_SPECIFIC_VALUE_MONTH - месячный архив(по маске)
+    ARCHIVE_SPECIFIC_VALUE_YEAR  - годовой архив(по маске)
+    CURRENT_DATA_VALUE - все текущие значения
+    SUM_HEAT           - суммарная накопленная тепловая энергия
+    SUM_HEAT_DAY_BEGIN - накопленная энергия на начало суток
+    SUM_HEAT_MONTH     - накопленная энергия на начало месяца
+    SUM_HEAT_YEAR      - накопленная энрегия на начало года
+    CONFIGURATION      - конфигурация теплосчётчика
+    --------------------------------------------------------------------------------
+
+    """
+
 
     def __init__(self):
         self.__buff = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
@@ -283,6 +387,36 @@ class StrumenTS_05_07Protocol():
         self.__port = Port()
         self.__counter = 0
         self.__contour = 0
+
+    #  Констант блок
+    METER_CONTOUR_1 = 1
+    METER_CONTOUR_2 = 2
+    METER_CONTOUR_3 = 3
+    METER_CONTOUR_4 = 4
+    METER_CONTOUR_5 = 5
+    ID = 0
+    DEVICE_TYPE = 17
+    FACTOR_NUMBER = 18
+    RELEASE_DATE = 19
+    CURRENT_DATE_TIME = 32
+    PROGRAM_VERSION = 20
+    NETWORK_ADDRESS = 21
+    USER_ID  = 22
+    PORT_SETTINGS = 23
+    ARCHIVE_ALL_VALUE_HOUR = 192
+    ARCHIVE_ALL_VALUE_DAY = 193
+    ARCHIVE_ALL_VALUE_MONTH = 194
+    ARCHIVE_ALL_VALUE_YEAR = 195
+    ARCHIVE_SPECIFIC_VALUE_HOUR = 196
+    ARCHIVE_SPECIFIC_VALUE_DAY = 197
+    ARCHIVE_SPECIFIC_VALUE_MONTH = 198
+    ARCHIVE_SPECIFIC_VALUE_YEAR = 199
+    CURRENT_DATA_VALUE = 46
+    SUM_HEAT = 1
+    SUM_HEAT_DAY_BEGIN = 42
+    SUM_HEAT_MONTH = 43
+    SUM_HEAT_YEAR = 44
+    CONFIGURATION = 41
 
     @property
     def contour(self):
@@ -361,8 +495,27 @@ class StrumenTS_05_07Protocol():
     def port(self, port):
         self.__port = port
 
+    def pack(self, addr, parametr, P1, P2, P3, P4):
+
+        if parametr > 191 and parametr < 200:
+            return self.create_archive_request(addr, parametr, P1, P2, P3, P4)
+        else:
+            return self.create_data_request(addr, parametr, P1, P2, P3)
+
+
     # method create a message to meter for parametrs : 0 - 192
     def create_data_request(self, addr, parametr, offset, tariff, contour):
+
+        """
+
+        Метод вернет 0, в случае возникновения ошибки при формировании посылки
+
+        """
+
+        # ошибка возврата, если переданы значения больше максимального значения для byte
+        if addr > 255 or parametr > 255 or offset > 255 or tariff > 255 or contour > 255:
+            return 0
+
         self.buff[0] = addr  # байт сетевого адреса, на байты 0x00 и 0xFF отвечают все счетчики
         self.buff[1] = 0x03  # функция, для чтения нужно 3(4), на выбор, но в описании рекомендуют 3
         self.buff[2] = parametr
@@ -373,10 +526,25 @@ class StrumenTS_05_07Protocol():
         self.checkParam = parametr
         self.contour = contour
         self.crc.CRC16(self.buff, 6)
-        return self.buff
+        #print("Request: ")
+        #for i in range(len(self.buff)):
+        #    print(str(i) + " - " + str(hex(self.buff[i])), end=", ")
+        #print()
+        return bytes(self.buff)
 
     # for parametrs : 192 - 200
     def create_archive_request(self, addr,  parametr, P1, P2, P3, P4):
+
+        """
+
+        Метод вернет 0, в случае возникновения ошибки при формировании посылки
+
+        """
+
+        # ошибка возврата, если переданы значения больше максимального значения для byte
+        if addr > 255 or parametr > 255 or P1 > 255 or P2 > 255 or P3 > 255 or P4 > 255:
+            return 0
+
         self.arch_buff[0] = addr
         self.arch_buff[1] = 0x03
         self.arch_buff[2] = parametr
@@ -388,9 +556,21 @@ class StrumenTS_05_07Protocol():
         self.checkParam = parametr
         self.contour = P4
         self.crc.CRC16(self.arch_buff, 7)
-        return self.arch_buff
+        #print("Request: ")
+        #for i in range(len(self.arch_buff)):
+        #    print("[" + str(i) + "] - " + str(hex(self.arch_buff[i])), end=", ")
+        #print()
+        return bytes(self.arch_buff)
 
     def checkAnswer(self, inbuf):
+
+        """
+
+        Вернет True, если входящая посылка соответствует протоколу, в остальных случаях - False.
+        В переменную strResult будет записано описание несоответсвия с протоколом.
+
+        """
+
         if not self.crc.CRC16(inbuf, (len(inbuf) - 2)):
             print("Not correct CRC")
             return False
@@ -439,7 +619,15 @@ class StrumenTS_05_07Protocol():
             return False
         return True
 
-    def processing_data(self, inbuf):
+    def unpack(self, inbuf):
+
+        """
+
+        Метод обработки входящей от счетчика посылки. В зависимости от байта параметра вызывается определенный case обработки.
+        Возвращает 1, в случае возникновения ошибки индекса, в случае других ошибок вернется 0.
+
+        """
+
         dataList = [WarmData(), WarmData(), WarmData(), WarmData()]
         if self.checkAnswer(bytearray(inbuf)):
             # GROUP CONST -------------------------------------------
@@ -526,17 +714,21 @@ class StrumenTS_05_07Protocol():
             elif inbuf[2] == 192:  # 0xC0
                 self.counter = 6
                 try:
+
+                    # Определяется, какие контуры есть в данном теплосчетчике, возвращает словарь, где ключ - это номер
+                    # контура, а значение - тип контура
                     test = self.contour_definition(inbuf)
                     if test == 0 or test == 1:
                         return test
 
+                    # Перебор по порядку всех контуров и расшифрока данных по ним
                     for i in sorted(test.keys()):
                         if (self.contour & (0x01 << int(i))) != 2**int(i) and self.contour != 0:
                             continue
                         # Count of parameters depends on the type of contour
                         dataList[int(i)].type = test[i]
                         dataList[int(i)].number_of_contour = int(i) + 1
-                        if test[i] == 1:
+                        if test[i] == self.METER_CONTOUR_1:
                             dataList[int(i)].V1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
                             dataList[int(i)].Tn = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
                             dataList[int(i)].Terr = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
@@ -546,7 +738,8 @@ class StrumenTS_05_07Protocol():
                             dataList[int(i)].Terr4 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
                             dataList[int(i)].Err = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
                             dataList[int(i)].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
-                        elif test[i] == 2 or test[i] == 3 or test[i] == 4:
+
+                        elif test[i] == self.METER_CONTOUR_2 or test[i] == self.METER_CONTOUR_3 or test[i] == self.METER_CONTOUR_4:
                             dataList[int(i)].Q1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
                             dataList[int(i)].V1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
                             dataList[int(i)].M1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
@@ -562,7 +755,8 @@ class StrumenTS_05_07Protocol():
                             dataList[int(i)].Terr4 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
                             dataList[int(i)].Err = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
                             dataList[int(i)].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
-                        elif test[i] == 5:
+
+                        elif test[i] == self.METER_CONTOUR_5:
                             dataList[int(i)].Q1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
                             dataList[int(i)].Q2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
                             dataList[int(i)].V1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
@@ -592,23 +786,28 @@ class StrumenTS_05_07Protocol():
             elif inbuf[2] == 193 or inbuf[2] == 194 or inbuf[2] == 195: # 0xC1, 0xC2, 0xC3
                 self.counter = 6
                 try:
+
+                    # Определяется, какие контуры есть в данном теплосчетчике, возвращает словарь, где ключ - это номер
+                    # контура, а значение - тип контура
                     test = self.contour_definition(inbuf)
                     if test == 0 or test == 1:
                         return test
 
+                    # Перебор по порядку всех контуров и расшифрока данных по ним
                     for i in sorted(test.keys()):
                         if (int(i) + 1) != self.contour and self.contour != 0:
                             continue
                         # Count of parameters depends on the type of contour
                         dataList[int(i)].type = test[i]
                         dataList[int(i)].number_of_contour = int(i) + 1
-                        if test[i] == 1:
+                        if test[i] == self.METER_CONTOUR_1:
                             dataList[int(i)].V1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
                             dataList[int(i)].Tn = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
                             dataList[int(i)].Terr = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
                             dataList[int(i)].Err = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
                             dataList[int(i)].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
-                        elif test[i] == 2 or test[i] == 3 or test[i] == 4:
+
+                        elif test[i] == self.METER_CONTOUR_2 or test[i] == self.METER_CONTOUR_3 or test[i] == self.METER_CONTOUR_5:
                             dataList[int(i)].Q1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
                             dataList[int(i)].V1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
                             dataList[int(i)].M1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
@@ -616,7 +815,8 @@ class StrumenTS_05_07Protocol():
                             dataList[int(i)].Terr = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
                             dataList[int(i)].Err = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
                             dataList[int(i)].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
-                        elif test[i] == 5:
+
+                        elif test[i] == self.METER_CONTOUR_5:
                             dataList[int(i)].Q1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
                             dataList[int(i)].Q2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
                             dataList[int(i)].V1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
@@ -638,12 +838,17 @@ class StrumenTS_05_07Protocol():
             elif inbuf[2] == 196:  # C4
                 self.counter = 5
                 try:
-                    test = {}
+                    test = dict()
+                    # Определяет, какому контору принадлежит ответ и какой его тип, записывается в словарь.
+                    # Словарь выбран, чтобы сохранить схожесть с чтением других параметров,
+                    # где возможны запросы по нескольким контурам.
                     test[(inbuf[4] & 0x0f)] = inbuf[4] >> 4
+
+                    # Перебор по порядку всех контуров и расшифрока данных по ним
                     for i in test.keys():
                         dataList[int(i)].number_of_contour = int(i) + 1
                         dataList[int(i)].type = test[i]
-                        if test[i] == 1:
+                        if test[i] == self.METER_CONTOUR_1:
                             if self.arch_buff[4] & 0x02:
                                 dataList[int(i)].V1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
                             if self.arch_buff[4] & 0x20:
@@ -660,7 +865,7 @@ class StrumenTS_05_07Protocol():
                             if self.arch_buff[5] & 0x02:
                                 dataList[int(i)].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
 
-                        elif test[i] == 2 or test[i] == 3 or test[i] == 4:
+                        elif test[i] == self.METER_CONTOUR_2 or test[i] == self.METER_CONTOUR_3 or test[i] == self.METER_CONTOUR_4:
                             if self.arch_buff[4] & 0x01:
                                 dataList[int(i)].Q1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
                             if self.arch_buff[4] & 0x02:
@@ -687,7 +892,7 @@ class StrumenTS_05_07Protocol():
                             if self.arch_buff[5] & 0x02:
                                 dataList[int(i)].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
 
-                        elif test[i] == 5:
+                        elif test[i] == self.METER_CONTOUR_5:
                             if self.arch_buff[4] & 0x01:
                                 dataList[int(i)].Q1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
                                 dataList[int(i)].Q2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
@@ -723,17 +928,21 @@ class StrumenTS_05_07Protocol():
                     return 1
                 except Exception:
                     return 0
+
             # day/month/year
 
             elif inbuf[2] == 197 or inbuf[2] == 198 or inbuf[2] == 199:  # 0xC5, 0xC6, 0xC7
                 self.counter = 5
                 try:
-                    test = {}
+                    test = dict()
+                    # определяет, какому контору принадлежит ответ и какой его тип
                     test[(inbuf[4] & 0x0f)] = inbuf[4] >> 4
+
+                    # Перебор по порядку всех контуров и расшифрока данных по ним
                     for i in test.keys():
                         dataList[int(i)].number_of_contour = int(i) + 1
                         dataList[int(i)].type = test[i]
-                        if test[i] == 1:
+                        if test[i] == self.METER_CONTOUR_1:
                             if self.arch_buff[4] & 0x02:
                                 dataList[int(i)].V1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
                             if self.arch_buff[4] & 0x20:
@@ -745,7 +954,7 @@ class StrumenTS_05_07Protocol():
                             if self.arch_buff[5] & 0x02:
                                 dataList[int(i)].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
 
-                        elif test[i] == 2 or test[i] == 3 or test[i] == 4:
+                        elif test[i] == self.METER_CONTOUR_2 or test[i] == self.METER_CONTOUR_3 or test[i] == self.METER_CONTOUR_4:
                             if self.arch_buff[4] & 0x01:
                                 dataList[int(i)].Q1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
                             if self.arch_buff[4] & 0x02:
@@ -761,7 +970,7 @@ class StrumenTS_05_07Protocol():
                             if self.arch_buff[5] & 0x02:
                                 dataList[int(i)].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
 
-                        elif test[i] == 5:
+                        elif test[i] == self.METER_CONTOUR_5:
                             if self.arch_buff[4] & 0x01:
                                 dataList[int(i)].Q1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
                                 dataList[int(i)].Q2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
@@ -792,16 +1001,20 @@ class StrumenTS_05_07Protocol():
             elif inbuf[2] == 46: # 0x2E
                 self.counter = 6
                 try:
+
+                    # Определяется, какие контуры есть в данном теплосчетчике, возвращает словарь, где ключ - это номер
+                    # контура, а значение - тип контура
                     test = self.contour_definition(inbuf)
                     if test == 0 or test == 1:
                         return test
 
+                    # Перебор по порядку всех контуров и расшифрока данных по ним
                     for i in sorted(test.keys()):
                         if (int(i) + 1) != self.contour and self.contour != 0:
                             continue
                         dataList[int(i)].number_of_contour = int(i) + 1
                         dataList[int(i)].type = test[i]
-                        if test[i] == 1:
+                        if test[i] == self.METER_CONTOUR_1:
                             dataList[int(i)].V1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
                             dataList[int(i)].Tn = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
                             dataList[int(i)].Terr = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
@@ -813,7 +1026,7 @@ class StrumenTS_05_07Protocol():
                             dataList[int(i)].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
                             dataList[int(i)].Gv1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
 
-                        elif test[i] == 2 or test[i] == 3 or test[i] == 4:
+                        elif test[i] == self.METER_CONTOUR_2 or test[i] == self.METER_CONTOUR_3  or test[i] == self.METER_CONTOUR_4:
                             dataList[int(i)].Q1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
                             dataList[int(i)].V1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
                             dataList[int(i)].M1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
@@ -833,7 +1046,7 @@ class StrumenTS_05_07Protocol():
                             dataList[int(i)].Gm1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
                             dataList[int(i)].P1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
 
-                        elif test[i] == 5:
+                        elif test[i] == self.METER_CONTOUR_5:
                             dataList[int(i)].Q1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
                             dataList[int(i)].Q2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
                             dataList[int(i)].V1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
@@ -915,10 +1128,16 @@ class StrumenTS_05_07Protocol():
 
             # END CONFIGERATION
         else:
-            print(self.strResult)
+            return 2
 
 
     def contour_definition(self, inbuf):
+
+        """
+
+        Метод определяет какие контура задействованы в данном теплосчетчике и каких они типов.
+
+        """
         try:
             test = {}
             if inbuf[4] >> 4:
@@ -936,6 +1155,14 @@ class StrumenTS_05_07Protocol():
             return 0
 
     def automation_bytearray(self, inbuf, count=4):
+
+        """
+
+        Метод возвращает строку байт(измен.) из произвольного числа байт(по умалчанию 4),
+        начиная со значения счетчика counter.
+
+        """
+
         try:
             byte_arr = bytearray(b'')
             for i in range(count):
@@ -949,6 +1176,13 @@ class StrumenTS_05_07Protocol():
 
 
     def fromBytesToStr(self, inbuf, start, end):
+
+        """
+
+        Метод из последовательности байт, начиная со значения start и заканчивая значением end,
+        формирует строку в кодировке ASCII.
+
+        """
         try:
             byte_arr = bytearray(b'')
             for i in range(start, end):
