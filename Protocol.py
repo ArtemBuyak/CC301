@@ -356,20 +356,46 @@ class StrumenTS_05_07Protocol():
     NETWORK_ADDRESS   - сетевой адрес прибора. -//-.
     USER_ID           - идентификатор пользователя. -//-.
     PORT_SETTINGS     - конфигурация порта связи. -//-.
-    ARCHIVE_ALL_VALUE_HOUR       - часовой архив(возвратит все значения данных). Вызов obj.pack(ADDR, obj.ARCHIVE_ALL_VALUE_HOUR, P1 - месяц, P2 - день, P3 - час, P4 - контур)
-    ARCHIVE_ALL_VALUE_DAY        - суточный архив(все значения). Вызов obj.pack(ADDR, obj.ARCHIVE_ALL_VAlUE_DAY, P1 - месяц, P2 - день, P3 - 0x00, P4 - контур)
-    ARCHIVE_ALL_VALUE_MONTH      - месячный архив(все значения). Вызов obj.pack(ADDR, obj.ARCHIVE_ALL_VAlUE_MONTH, P1 - год, P2 - месяц, P3- 0x00, P4 - контур)
-    ARCHIVE_ALL_VALUE_YEAR       - годовой архив(все значения). Вызов obj.pack(ADDR, obj.ARCHIVE_ALL_VAlUE_YEAR, P1 - год, P2 - 0x00, P3 - 0x00, P4 - контур)
-    ARCHIVE_SPECIFIC_VALUE_HOUR  - часовой архив(по маске). Вызов obj.pack(ADDR, obj.ARCHIVE_SPECIFIC_VALUE_HOUR, P1 - смещение(от 0 до 255), P2 - элумент записи())
-    ARCHIVE_SPECIFIC_VALUE_DAY   - часовой архив(по маске)
-    ARCHIVE_SPECIFIC_VALUE_MONTH - месячный архив(по маске)
-    ARCHIVE_SPECIFIC_VALUE_YEAR  - годовой архив(по маске)
-    CURRENT_DATA_VALUE - все текущие значения
+    CONFIGURATION     - конфигурация теплосчётчика. -//-
+
+    ARCHIVE_ALL_VALUE_HOUR       - часовой архив(возвратит все значения данных).
+                        Вызов obj.pack(ADDR, obj.ARCHIVE_ALL_VALUE_HOUR, P1 - месяц, P2 - день, P3 - час, P4 - контур)
+
+    ARCHIVE_ALL_VALUE_DAY        - суточный архив(все значения).
+                        Вызов obj.pack(ADDR, obj.ARCHIVE_ALL_VAlUE_DAY, P1 - месяц, P2 - день, P3 - 0x00, P4 - контур)
+
+    ARCHIVE_ALL_VALUE_MONTH      - месячный архив(все значения).
+                        Вызов obj.pack(ADDR, obj.ARCHIVE_ALL_VAlUE_MONTH, P1 - год, P2 - месяц, P3- 0x00, P4 - контур)
+
+    ARCHIVE_ALL_VALUE_YEAR       - годовой архив(все значения).
+                        Вызов obj.pack(ADDR, obj.ARCHIVE_ALL_VAlUE_YEAR, P1 - год, P2 - 0x00, P3 - 0x00, P4 - контур)
+
+    ARCHIVE_SPECIFIC_VALUE_HOUR  - часовой архив(по маске).
+                        Вызов obj.pack(ADDR, obj.ARCHIVE_SPECIFIC_VALUE_HOUR, P1 - смещение(0...255), P2 - элумент записи(значение этого поля из таблицы Б4 в описании протокола), P4 - METER_CONTOUR_1(и т.д.))
+
+    ARCHIVE_SPECIFIC_VALUE_DAY   - часовой архив(по маске).
+                        Вызов obj.pack(ADDR, obj.ARCHIVE_SPECIFIC_VALUE_DAY, P1 - смещение(0...63), P2 - аналогично часовому архиву(по маске), P4 - METER_CONTOUR_1(и т.д.))
+
+    ARCHIVE_SPECIFIC_VALUE_MONTH - месячный архив(по маске).
+                        Вызов obj.pack(ADDR, obj.ARCHIVE_SPECIFIC_VALUE_MONTH, P1 - смещение(0...15), P2 - аналогично часовому архиву(по маске), P4 - METER_CONTOUR_1(и т.д.))
+
+    ARCHIVE_SPECIFIC_VALUE_YEAR  - годовой архив(по маске).
+                        Вызов obj.pack(ADDR, obj.ARCHIVE_SPECIFIC_VALUE_YEAR, P1 - смещение(0...15), P2 - аналогично часовому архиву(по маске), P4 - METER_CONTOUR_1(и т.д.))
+
+    CURRENT_DATA_VALUE - все текущие значения.
+                        Вызов obj.pack(ADDR, obj.CURRENT_DATA_VALUE, P1 - 0x00, P2 - 0x00, P3 - METER_CONTOUR_1(либо другой контур, в случае 0x00 - значение по всем контурам), P4 - 0x00)
+
     SUM_HEAT           - суммарная накопленная тепловая энергия
+                        Вызов obj.pack(ADDR, obj.SUM_HEAT, P1 - 0x00, P2 - 0x00, P3 - аналогично CURRENT_DATA_VAlUE, P4 - 0x00)
+
     SUM_HEAT_DAY_BEGIN - накопленная энергия на начало суток
-    SUM_HEAT_MONTH     - накопленная энергия на начало месяца
-    SUM_HEAT_YEAR      - накопленная энрегия на начало года
-    CONFIGURATION      - конфигурация теплосчётчика
+                        Вызов obj.pack(ADDR, obj.SUM_HEAT_DAY_BEGIN, P1 - смещение(0...63), P2 - 0x00, P3 - аналогично CURRENT_DATA_VAlUE, P4 - 0x00)
+
+    SUM_HEAT_MONTH_BEGIN - накопленная энергия на начало месяца
+                         Вызов obj.pack(ADDR, obj.SUM_HEAT_MONTH_BEGIN, P1 - (0...15), P2 - 0x00, P3 - аналогично CURRENT_DATA_VAlUE, P4 - 0x00)
+
+    SUM_HEAT_YEAR_BEGIN  - накопленная энрегия на начало года
+                        Bызов obj.pack(ADDR, obj.SUM_HEAT_YEAR_BEGIN, P1 - 0x00, P2 - 0x00, P3 - аналогично CURRENT_DATA_VAlUE, P4 - 0x00)
     --------------------------------------------------------------------------------
 
     """
@@ -414,8 +440,8 @@ class StrumenTS_05_07Protocol():
     CURRENT_DATA_VALUE = 46
     SUM_HEAT = 1
     SUM_HEAT_DAY_BEGIN = 42
-    SUM_HEAT_MONTH = 43
-    SUM_HEAT_YEAR = 44
+    SUM_HEAT_MONTH_BEGIN = 43
+    SUM_HEAT_YEAR_BEGIN = 44
     CONFIGURATION = 41
 
     @property
@@ -526,10 +552,10 @@ class StrumenTS_05_07Protocol():
         self.checkParam = parametr
         self.contour = contour
         self.crc.CRC16(self.buff, 6)
-        #print("Request: ")
-        #for i in range(len(self.buff)):
-        #    print(str(i) + " - " + str(hex(self.buff[i])), end=", ")
-        #print()
+        print("Request: ")
+        for i in range(len(self.buff)):
+            print(str(i) + " - " + str(hex(self.buff[i])), end=", ")
+        print()
         return bytes(self.buff)
 
     # for parametrs : 192 - 200
@@ -633,7 +659,7 @@ class StrumenTS_05_07Protocol():
             # GROUP CONST -------------------------------------------
 
             # identification device number
-            if inbuf[2] == 0:
+            if inbuf[2] == self.ID:
                 result = "Идентификационный номер устройства: "
                 if len(str(inbuf[5])) == 1:
                     result += "0" + str(inbuf[5])
@@ -646,15 +672,15 @@ class StrumenTS_05_07Protocol():
                 return result
 
             # device type
-            elif inbuf[2] == 17:  # 0x11
+            elif inbuf[2] == self.DEVICE_TYPE:  # 0x11
                 return self.fromBytesToStr(inbuf, 4, 4 + 32)
 
             # factor number
-            elif inbuf[2] == 18:  # 0x12
+            elif inbuf[2] == self.FACTOR_NUMBER:  # 0x12
                 return self.fromBytesToStr(inbuf, 4, 4 + 8)
 
             # release date/ current time
-            elif inbuf[2] == 19 or inbuf[2] == 32:  # 0x13 0x20
+            elif inbuf[2] == self.RELEASE_DATE or inbuf[2] == self.CURRENT_DATE_TIME:  # 0x13 0x20
                 try:
                     self.time.year = 2000 + inbuf[9]
                     self.time.month = inbuf[8]
@@ -669,7 +695,7 @@ class StrumenTS_05_07Protocol():
                     return 0
 
             # program version
-            elif inbuf[2] == 20:  # 0x14
+            elif inbuf[2] == self.PROGRAM_VERSION:  # 0x14
                 try:
                     return self.fromBytesToStr(inbuf, 4, 4 + 4)
                 except IndexError:
@@ -678,7 +704,7 @@ class StrumenTS_05_07Protocol():
                     return 0
 
             # network address
-            elif inbuf[2] == 21:  # 0x15
+            elif inbuf[2] == self.NETWORK_ADDRESS:  # 0x15
                 try:
                     return inbuf[4]
                 except IndexError:
@@ -687,11 +713,11 @@ class StrumenTS_05_07Protocol():
                     return 0
 
             # User ID
-            elif inbuf[2] == 22:  # 0x16
+            elif inbuf[2] == self.USER_ID:  # 0x16
                 return self.fromBytesToStr(inbuf, 4, 4 + 8)
 
             # port settings
-            elif inbuf[2] == 23:  # 0x17
+            elif inbuf[2] == self.PORT_SETTINGS:  # 0x17
                 try:
                     byte_arr = bytearray(b'')
                     byte_arr.append(inbuf[4])
@@ -711,7 +737,7 @@ class StrumenTS_05_07Protocol():
             # DATA ARCHIVE*******************************************
 
             # hour
-            elif inbuf[2] == 192:  # 0xC0
+            elif inbuf[2] == self.ARCHIVE_ALL_VALUE_HOUR:  # 0xC0
                 self.counter = 6
                 try:
 
@@ -723,67 +749,67 @@ class StrumenTS_05_07Protocol():
 
                     # Перебор по порядку всех контуров и расшифрока данных по ним
                     for i in sorted(test.keys()):
-                        if (self.contour & (0x01 << int(i))) != 2**int(i) and self.contour != 0:
+                        if (self.contour & (0x01 << i)) != 2**i and self.contour != 0:
                             continue
                         # Count of parameters depends on the type of contour
-                        dataList[int(i)].type = test[i]
-                        dataList[int(i)].number_of_contour = int(i) + 1
+                        dataList[i].type = test[i]
+                        dataList[i].number_of_contour = i + 1
                         if test[i] == self.METER_CONTOUR_1:
-                            dataList[int(i)].V1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].Tn = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
-                            dataList[int(i)].Terr = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
-                            dataList[int(i)].Terr1 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
-                            dataList[int(i)].Terr2 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
-                            dataList[int(i)].Terr3 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
-                            dataList[int(i)].Terr4 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
-                            dataList[int(i)].Err = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
-                            dataList[int(i)].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
+                            dataList[i].V1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].Tn = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                            dataList[i].Terr = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                            dataList[i].Terr1 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
+                            dataList[i].Terr2 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
+                            dataList[i].Terr3 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
+                            dataList[i].Terr4 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
+                            dataList[i].Err = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                            dataList[i].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
 
                         elif test[i] == self.METER_CONTOUR_2 or test[i] == self.METER_CONTOUR_3 or test[i] == self.METER_CONTOUR_4:
-                            dataList[int(i)].Q1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].V1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].M1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].t1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].t2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].p1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].p2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].Tn = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
-                            dataList[int(i)].Terr = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
-                            dataList[int(i)].Terr1 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
-                            dataList[int(i)].Terr2 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
-                            dataList[int(i)].Terr3 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
-                            dataList[int(i)].Terr4 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
-                            dataList[int(i)].Err = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
-                            dataList[int(i)].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
+                            dataList[i].Q1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].V1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].M1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].t1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].t2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].p1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].p2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].Tn = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                            dataList[i].Terr = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                            dataList[i].Terr1 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
+                            dataList[i].Terr2 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
+                            dataList[i].Terr3 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
+                            dataList[i].Terr4 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
+                            dataList[i].Err = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                            dataList[i].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
 
                         elif test[i] == self.METER_CONTOUR_5:
-                            dataList[int(i)].Q1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].Q2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].V1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].V2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].M1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].M2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].t1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].t2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].t3 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].p1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].p2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].p3 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].Tn = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
-                            dataList[int(i)].Terr = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
-                            dataList[int(i)].Terr1 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
-                            dataList[int(i)].Terr2 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
-                            dataList[int(i)].Terr3 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
-                            dataList[int(i)].Terr4 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
-                            dataList[int(i)].Err = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
-                            dataList[int(i)].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
+                            dataList[i].Q1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].Q2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].V1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].V2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].M1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].M2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].t1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].t2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].t3 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].p1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].p2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].p3 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].Tn = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                            dataList[i].Terr = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                            dataList[i].Terr1 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
+                            dataList[i].Terr2 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
+                            dataList[i].Terr3 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
+                            dataList[i].Terr4 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
+                            dataList[i].Err = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                            dataList[i].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
                     return dataList
                 except IndexError:
                     return 1
                 except Exception:
                     return 0
             # day/month/year
-            elif inbuf[2] == 193 or inbuf[2] == 194 or inbuf[2] == 195: # 0xC1, 0xC2, 0xC3
+            elif inbuf[2] == self.ARCHIVE_ALL_VALUE_DAY or inbuf[2] == self.ARCHIVE_ALL_VALUE_MONTH or inbuf[2] == self.ARCHIVE_ALL_VALUE_YEAR: # 0xC1, 0xC2, 0xC3
                 self.counter = 6
                 try:
 
@@ -795,38 +821,38 @@ class StrumenTS_05_07Protocol():
 
                     # Перебор по порядку всех контуров и расшифрока данных по ним
                     for i in sorted(test.keys()):
-                        if (int(i) + 1) != self.contour and self.contour != 0:
+                        if (i + 1) != self.contour and self.contour != 0:
                             continue
                         # Count of parameters depends on the type of contour
-                        dataList[int(i)].type = test[i]
-                        dataList[int(i)].number_of_contour = int(i) + 1
+                        dataList[i].type = test[i]
+                        dataList[i].number_of_contour = i + 1
                         if test[i] == self.METER_CONTOUR_1:
-                            dataList[int(i)].V1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].Tn = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
-                            dataList[int(i)].Terr = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
-                            dataList[int(i)].Err = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
-                            dataList[int(i)].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
+                            dataList[i].V1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].Tn = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                            dataList[i].Terr = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                            dataList[i].Err = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                            dataList[i].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
 
                         elif test[i] == self.METER_CONTOUR_2 or test[i] == self.METER_CONTOUR_3 or test[i] == self.METER_CONTOUR_5:
-                            dataList[int(i)].Q1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].V1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].M1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].Tn = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
-                            dataList[int(i)].Terr = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
-                            dataList[int(i)].Err = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
-                            dataList[int(i)].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
+                            dataList[i].Q1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].V1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].M1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].Tn = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                            dataList[i].Terr = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                            dataList[i].Err = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                            dataList[i].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
 
                         elif test[i] == self.METER_CONTOUR_5:
-                            dataList[int(i)].Q1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].Q2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].V1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].V2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].M1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].M2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].Tn = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
-                            dataList[int(i)].Terr = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
-                            dataList[int(i)].Err = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
-                            dataList[int(i)].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
+                            dataList[i].Q1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].Q2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].V1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].V2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].M1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].M2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].Tn = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                            dataList[i].Terr = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                            dataList[i].Err = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                            dataList[i].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
                     return dataList
                 except IndexError:
                     return 1
@@ -835,7 +861,7 @@ class StrumenTS_05_07Protocol():
             # On a specific parametr
 
             # hour
-            elif inbuf[2] == 196:  # C4
+            elif inbuf[2] == self.ARCHIVE_SPECIFIC_VALUE_HOUR:  # C4
                 self.counter = 5
                 try:
                     test = dict()
@@ -846,83 +872,83 @@ class StrumenTS_05_07Protocol():
 
                     # Перебор по порядку всех контуров и расшифрока данных по ним
                     for i in test.keys():
-                        dataList[int(i)].number_of_contour = int(i) + 1
-                        dataList[int(i)].type = test[i]
+                        dataList[i].number_of_contour = i + 1
+                        dataList[i].type = test[i]
                         if test[i] == self.METER_CONTOUR_1:
                             if self.arch_buff[4] & 0x02:
-                                dataList[int(i)].V1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                                dataList[i].V1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
                             if self.arch_buff[4] & 0x20:
-                                dataList[int(i)].Tn = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                                dataList[i].Tn = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
                             if self.arch_buff[4] & 0x40:
-                                dataList[int(i)] = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                                dataList[i] = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
                             if self.arch_buff[4] & 0x80:
-                                dataList[int(i)].Terr1 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
-                                dataList[int(i)].Terr2 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
-                                dataList[int(i)].Terr3 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
-                                dataList[int(i)].Terr4 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
+                                dataList[i].Terr1 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
+                                dataList[i].Terr2 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
+                                dataList[i].Terr3 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
+                                dataList[i].Terr4 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
                             if self.arch_buff[5] & 0x01:
-                                dataList[int(i)].Err = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                                dataList[i].Err = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
                             if self.arch_buff[5] & 0x02:
-                                dataList[int(i)].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
+                                dataList[i].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
 
                         elif test[i] == self.METER_CONTOUR_2 or test[i] == self.METER_CONTOUR_3 or test[i] == self.METER_CONTOUR_4:
                             if self.arch_buff[4] & 0x01:
-                                dataList[int(i)].Q1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                                dataList[i].Q1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
                             if self.arch_buff[4] & 0x02:
-                                dataList[int(i)].V1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                                dataList[i].V1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
                             if self.arch_buff[4] & 0x04:
-                                dataList[int(i)].M1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                                dataList[i].M1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
                             if self.arch_buff[4] & 0x08:
-                                dataList[int(i)].t1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                                dataList[int(i)].t2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                                dataList[i].t1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                                dataList[i].t2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
                             if self.arch_buff[4] & 0x10:
-                                dataList[int(i)].p1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                                dataList[int(i)].p2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                                dataList[i].p1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                                dataList[i].p2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
                             if self.arch_buff[4] & 0x20:
-                                dataList[int(i)].Tn = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                                dataList[i].Tn = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
                             if self.arch_buff[4] & 0x40:
-                                dataList[int(i)] = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                                dataList[i] = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
                             if self.arch_buff[4] & 0x80:
-                                dataList[int(i)].Terr1 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
-                                dataList[int(i)].Terr2 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
-                                dataList[int(i)].Terr3 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
-                                dataList[int(i)].Terr4 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
+                                dataList[i].Terr1 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
+                                dataList[i].Terr2 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
+                                dataList[i].Terr3 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
+                                dataList[i].Terr4 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
                             if self.arch_buff[5] & 0x01:
-                                dataList[int(i)].Err = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                                dataList[i].Err = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
                             if self.arch_buff[5] & 0x02:
-                                dataList[int(i)].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
+                                dataList[i].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
 
                         elif test[i] == self.METER_CONTOUR_5:
                             if self.arch_buff[4] & 0x01:
-                                dataList[int(i)].Q1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                                dataList[int(i)].Q2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                                dataList[i].Q1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                                dataList[i].Q2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
                             if self.arch_buff[4] & 0x02:
-                                dataList[int(i)].V1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                                dataList[int(i)].V2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                                dataList[i].V1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                                dataList[i].V2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
                             if self.arch_buff[4] & 0x04:
-                                dataList[int(i)].M1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                                dataList[int(i)].M2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                                dataList[i].M1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                                dataList[i].M2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
                             if self.arch_buff[4] & 0x08:
-                                dataList[int(i)].t1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                                dataList[int(i)].t2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                                dataList[int(i)].t3 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                                dataList[i].t1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                                dataList[i].t2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                                dataList[i].t3 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
                             if self.arch_buff[4] & 0x10:
-                                dataList[int(i)].p1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                                dataList[int(i)].p2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                                dataList[int(i)].p3 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                                dataList[i].p1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                                dataList[i].p2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                                dataList[i].p3 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
                             if self.arch_buff[4] & 0x20:
-                                dataList[int(i)].Tn = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                                dataList[i].Tn = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
                             if self.arch_buff[4] & 0x40:
-                                dataList[int(i)] = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                                dataList[i] = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
                             if self.arch_buff[4] & 0x80:
-                                dataList[int(i)].Terr1 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
-                                dataList[int(i)].Terr2 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
-                                dataList[int(i)].Terr3 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
-                                dataList[int(i)].Terr4 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
+                                dataList[i].Terr1 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
+                                dataList[i].Terr2 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
+                                dataList[i].Terr3 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
+                                dataList[i].Terr4 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
                             if self.arch_buff[5] & 0x01:
-                                dataList[int(i)].Err = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                                dataList[i].Err = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
                             if self.arch_buff[5] & 0x02:
-                                dataList[int(i)].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
+                                dataList[i].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
                     return dataList
                 except IndexError:
                     return 1
@@ -931,7 +957,7 @@ class StrumenTS_05_07Protocol():
 
             # day/month/year
 
-            elif inbuf[2] == 197 or inbuf[2] == 198 or inbuf[2] == 199:  # 0xC5, 0xC6, 0xC7
+            elif inbuf[2] == self.ARCHIVE_SPECIFIC_VALUE_HOUR or inbuf[2] == self.ARCHIVE_SPECIFIC_VALUE_MONTH or inbuf[2] == self.ARCHIVE_SPECIFIC_VALUE_YEAR:  # 0xC5, 0xC6, 0xC7
                 self.counter = 5
                 try:
                     test = dict()
@@ -940,54 +966,54 @@ class StrumenTS_05_07Protocol():
 
                     # Перебор по порядку всех контуров и расшифрока данных по ним
                     for i in test.keys():
-                        dataList[int(i)].number_of_contour = int(i) + 1
-                        dataList[int(i)].type = test[i]
+                        dataList[i].number_of_contour = i + 1
+                        dataList[i].type = test[i]
                         if test[i] == self.METER_CONTOUR_1:
                             if self.arch_buff[4] & 0x02:
-                                dataList[int(i)].V1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                                dataList[i].V1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
                             if self.arch_buff[4] & 0x20:
-                                dataList[int(i)].Tn = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                                dataList[i].Tn = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
                             if self.arch_buff[4] & 0x40:
-                                dataList[int(i)] = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                                dataList[i] = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
                             if self.arch_buff[5] & 0x01:
-                                dataList[int(i)].Err = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                                dataList[i].Err = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
                             if self.arch_buff[5] & 0x02:
-                                dataList[int(i)].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
+                                dataList[i].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
 
                         elif test[i] == self.METER_CONTOUR_2 or test[i] == self.METER_CONTOUR_3 or test[i] == self.METER_CONTOUR_4:
                             if self.arch_buff[4] & 0x01:
-                                dataList[int(i)].Q1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                                dataList[i].Q1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
                             if self.arch_buff[4] & 0x02:
-                                dataList[int(i)].V1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                                dataList[i].V1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
                             if self.arch_buff[4] & 0x04:
-                                dataList[int(i)].M1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                                dataList[i].M1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
                             if self.arch_buff[4] & 0x20:
-                                dataList[int(i)].Tn = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                                dataList[i].Tn = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
                             if self.arch_buff[4] & 0x40:
-                                dataList[int(i)] = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                                dataList[i] = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
                             if self.arch_buff[5] & 0x01:
-                                dataList[int(i)].Err = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                                dataList[i].Err = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
                             if self.arch_buff[5] & 0x02:
-                                dataList[int(i)].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
+                                dataList[i].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
 
                         elif test[i] == self.METER_CONTOUR_5:
                             if self.arch_buff[4] & 0x01:
-                                dataList[int(i)].Q1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                                dataList[int(i)].Q2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                                dataList[i].Q1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                                dataList[i].Q2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
                             if self.arch_buff[4] & 0x02:
-                                dataList[int(i)].V1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                                dataList[int(i)].V2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                                dataList[i].V1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                                dataList[i].V2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
                             if self.arch_buff[4] & 0x04:
-                                dataList[int(i)].M1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                                dataList[int(i)].M2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                                dataList[i].M1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                                dataList[i].M2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
                             if self.arch_buff[4] & 0x20:
-                                dataList[int(i)].Tn = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                                dataList[i].Tn = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
                             if self.arch_buff[4] & 0x40:
-                                dataList[int(i)] = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                                dataList[i] = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
                             if self.arch_buff[5] & 0x01:
-                                dataList[int(i)].Err = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                                dataList[i].Err = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
                             if self.arch_buff[5] & 0x02:
-                                dataList[int(i)].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
+                                dataList[i].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
                     return dataList
                 except IndexError:
                     return 1
@@ -998,7 +1024,7 @@ class StrumenTS_05_07Protocol():
 
             # CURRENT DATA-------------------------------------------
 
-            elif inbuf[2] == 46: # 0x2E
+            elif inbuf[2] == self.CURRENT_DATA_VALUE: # 0x2E
                 self.counter = 6
                 try:
 
@@ -1010,69 +1036,69 @@ class StrumenTS_05_07Protocol():
 
                     # Перебор по порядку всех контуров и расшифрока данных по ним
                     for i in sorted(test.keys()):
-                        if (int(i) + 1) != self.contour and self.contour != 0:
+                        if (i + 1) != self.contour and self.contour != 0:
                             continue
-                        dataList[int(i)].number_of_contour = int(i) + 1
-                        dataList[int(i)].type = test[i]
+                        dataList[i].number_of_contour = i + 1
+                        dataList[i].type = test[i]
                         if test[i] == self.METER_CONTOUR_1:
-                            dataList[int(i)].V1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].Tn = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
-                            dataList[int(i)].Terr = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
-                            dataList[int(i)].Terr1 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
-                            dataList[int(i)].Terr2 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
-                            dataList[int(i)].Terr3 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
-                            dataList[int(i)].Terr4 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
-                            dataList[int(i)].Err = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
-                            dataList[int(i)].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
-                            dataList[int(i)].Gv1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].V1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].Tn = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                            dataList[i].Terr = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                            dataList[i].Terr1 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
+                            dataList[i].Terr2 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
+                            dataList[i].Terr3 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
+                            dataList[i].Terr4 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
+                            dataList[i].Err = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                            dataList[i].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
+                            dataList[i].Gv1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
 
                         elif test[i] == self.METER_CONTOUR_2 or test[i] == self.METER_CONTOUR_3  or test[i] == self.METER_CONTOUR_4:
-                            dataList[int(i)].Q1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].V1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].M1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].t1 = struct. unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].t2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].p1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].p2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].Tn = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
-                            dataList[int(i)].Terr = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
-                            dataList[int(i)].Terr1 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
-                            dataList[int(i)].Terr2 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
-                            dataList[int(i)].Terr3 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
-                            dataList[int(i)].Terr4 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
-                            dataList[int(i)].Err = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
-                            dataList[int(i)].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
-                            dataList[int(i)].Gv1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].Gm1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].P1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].Q1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].V1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].M1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].t1 = struct. unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].t2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].p1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].p2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].Tn = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                            dataList[i].Terr = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                            dataList[i].Terr1 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
+                            dataList[i].Terr2 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
+                            dataList[i].Terr3 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
+                            dataList[i].Terr4 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
+                            dataList[i].Err = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                            dataList[i].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
+                            dataList[i].Gv1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].Gm1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].P1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
 
                         elif test[i] == self.METER_CONTOUR_5:
-                            dataList[int(i)].Q1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].Q2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].V1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].V2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].M1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].M2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].t1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].t2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].t3 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].p1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].p2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].p3 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].Tn = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
-                            dataList[int(i)].Terr = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
-                            dataList[int(i)].Terr1 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
-                            dataList[int(i)].Terr2 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
-                            dataList[int(i)].Terr3 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
-                            dataList[int(i)].Terr4 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
-                            dataList[int(i)].Err = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
-                            dataList[int(i)].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
-                            dataList[int(i)].Gv1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].Gv2 =struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].Gm1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].Gm2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].P1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].P2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].Q1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].Q2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].V1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].V2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].M1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].M2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].t1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].t2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].t3 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].p1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].p2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].p3 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].Tn = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                            dataList[i].Terr = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                            dataList[i].Terr1 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
+                            dataList[i].Terr2 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
+                            dataList[i].Terr3 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
+                            dataList[i].Terr4 = int.from_bytes(self.automation_bytearray(inbuf, count=1), byteorder='big')
+                            dataList[i].Err = int.from_bytes(self.automation_bytearray(inbuf), byteorder='big')
+                            dataList[i].Act = int.from_bytes(self.automation_bytearray(inbuf, count=2), byteorder='big')
+                            dataList[i].Gv1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].Gv2 =struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].Gm1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].Gm2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].P1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].P2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
                     return dataList
                 except IndexError:
                     return 1
@@ -1084,7 +1110,7 @@ class StrumenTS_05_07Protocol():
             # GROUP THERMAL ENERGY
 
             # sum/to the beginning of the day
-            elif inbuf[2] == 1 or inbuf[2] == 42 or inbuf[2] == 43 or inbuf[2] == 44:  # 0x01, 0x0A, 0x0B, 0x0C
+            elif inbuf[2] == self.SUM_HEAT or inbuf[2] == self.SUM_HEAT_DAY_BEGIN or inbuf[2] == self.SUM_HEAT_MONTH_BEGIN or inbuf[2] == self.SUM_HEAT_YEAR_BEGIN:  # 0x01, 0x0A, 0x0B, 0x0C
                 self.counter = 6
                 try:
                     test = self.contour_definition(inbuf)
@@ -1092,17 +1118,17 @@ class StrumenTS_05_07Protocol():
                         return test
 
                     for i in sorted(test.keys()):
-                        if (int(i) + 1) != self.contour and self.contour != 0:
+                        if (i + 1) != self.contour and self.contour != 0:
                             continue
-                        dataList[int(i)].number_of_contour = int(i) + 1
-                        dataList[int(i)].type = test[i]
+                        dataList[i].number_of_contour = i + 1
+                        dataList[i].type = test[i]
                         if test[i] == 1:
                             pass
                         elif test[i] == 2 or test[i] == 3 or test[i] == 4:
-                            dataList[int(i)].Q1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].Q1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
                         elif test[i] == 5:
-                            dataList[int(i)].Q1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
-                            dataList[int(i)].Q2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].Q1 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
+                            dataList[i].Q2 = struct.unpack('f', self.automation_bytearray(inbuf))[0]
                     return dataList
                 except IndexError:
                     return 1
@@ -1112,7 +1138,7 @@ class StrumenTS_05_07Protocol():
 
             # CONFIGERATION
 
-            elif inbuf[2] == 41:
+            elif inbuf[2] == self.CONFIGURATION:
                 try:
                     config = self.contour_definition(inbuf)
                     if config == 0 or config == 1:
@@ -1141,13 +1167,13 @@ class StrumenTS_05_07Protocol():
         try:
             test = {}
             if inbuf[4] >> 4:
-                test["1"] = inbuf[4] >> 4
+                test[1] = inbuf[4] >> 4
             if inbuf[4] & 0x0f:
-                test["0"] = inbuf[4] & 0x0f
+                test[0] = inbuf[4] & 0x0f
             if inbuf[5] >> 4:
-                test["3"] = inbuf[4] >> 4
+                test[3] = inbuf[4] >> 4
             if inbuf[5] & 0x0f:
-                test["2"] = inbuf[4] & 0x0f
+                test[2] = inbuf[4] & 0x0f
             return test
         except IndexError:
             return 1

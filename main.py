@@ -12,12 +12,12 @@ def main():
     conn.send_data(pr.pack(0x00, pr.CURRENT_DATA_VALUE, 0x00, 0x00, 0x00, 0x00))
     data = conn.receive_data()
     print("Response: ")
-    #try:
-    #    for i in range(len(data)):
-    #        print("[" + str(i) + "] - " + str(hex(data[i])), end=", ")
-    #except Exception:
-    #    pass
-    #print()
+    try:
+        for i in range(len(data)):
+            print("[" + str(i) + "] - " + str(hex(data[i])), end=", ")
+    except Exception:
+        pass
+    print()
     pr.unpack(data)
     time.sleep(10)
 
