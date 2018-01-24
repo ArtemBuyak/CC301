@@ -17,6 +17,26 @@ class CC301Protocol:
         self.__Ke = 0  # weight coefficient
         self.__port = Port()
 
+    ID = 0
+    DEVICE_TYPE = 17
+    FACTOR_NUMBER = 18
+    RELEASE_DATE = 19
+    CURRENT_DATE_TIME = 32
+    PROGRAM_VERSION = 20
+    NETWORK_ADDRESS = 21
+    USER_ID = 22
+    PORT_SETTINGS = 23
+    WEIGHT_COEFFICIENT = 24
+    SUM_BEGIN_DAY = 42
+    SUM_BEGIN_MONTH = 43
+    SUM_BEGIN_YEAR = 44
+    INCREMENT_DAY = 2
+    INCREMENT_MONTH = 3
+    INCREMENT_YEAR = 4
+    ALL_SUM_ENERGY = 1
+    AVERAGE_3_MIN = 5
+    AVERAGE_30_MIN = 6
+    SLICE_OF_ENERGY = 36
 
     @property
     def buff(self):
@@ -82,7 +102,7 @@ class CC301Protocol:
         self.__port = port
 
     # method create a message to meter
-    def create_data_request(self, addr, parametr, offset, tariff):
+    def pack(self, addr, parametr, offset, tariff):
 
         """
         Метод вернет 0, в случае возникновения ошибки при формировании посылки
@@ -104,7 +124,7 @@ class CC301Protocol:
         self.crc.CRC16(self.buff, 6)
         return bytes(self.buff)
 
-    def processing_data(self, inbuf):
+    def unpack(self, inbuf):
 
         """
 
@@ -112,44 +132,45 @@ class CC301Protocol:
         Возвращает 1, в случае возникновения ошибки индекса, в случае других ошибок вернется 0.
 
         """
-
+        dataDict = OrderedDict()
         if self.checkAnswer(inbuf):
             # date current/release date
-            if inbuf[2] == 32 or inbuf[2] == 19:  # 0x20, 0x13
+            if inbuf[2] == self.RELEASE_DATE or inbuf[2] == self.CURRENT_DATE_TIME:  # 0x20, 0x13
                 try:
-                    self.time.year = 2000 + inbuf[9]
-                    self.time.month = inbuf[8]
-                    self.time.day = inbuf[7]
-                    self.time.hour = inbuf[6]
-                    self.time.minute = inbuf[5]
-                    self.time.sec = inbuf[4]
-                    return self.time
+                    dataDict["time"] = OrderedDict()
+                    dataDict["time"]["year"] = 2000 + inbuf[9]
+                    dataDict["time"]["month"] = inbuf[8]
+                    dataDict["time"]["day"] = inbuf[7]
+                    dataDict["time"]["hour"] = inbuf[6]
+                    dataDict["time"]["minute"] = inbuf[5]
+                    dataDict["time"]["sec"] = inbuf[4]
+                    return dataDict
                 except IndexError:
                     return 1
                 except Exception:
                     return 0
 
             # by the beginning of the day/month/year
-            elif inbuf[2] == 42 or inbuf[2] == 43 or inbuf[2] == 44:  # 0x2A, 0x2B, 0x2C
-                return self.processingReadAnswer(inbuf)
+            elif inbuf[2] == self.SUM_BEGIN_DAY or inbuf[2] == self.SUM_BEGIN_MONTH or inbuf[2] == self.SUM_BEGIN_YEAR:  # 0x2A, 0x2B, 0x2C
+                return self.processingReadAnswer(inbuf, dataDict)
 
             # for the day/month/year
-            elif inbuf[2] == 2 or inbuf[2] == 3 or inbuf == 4:
-                return self.processingReadAnswer(inbuf)
+            elif inbuf[2] == self.INCREMENT_DAY or inbuf[2] == self.INCREMENT_MONTH or inbuf == self.SUM_BEGIN_YEAR:
+                return self.processingReadAnswer(inbuf, dataDict)
 
             # for the sum value, average 3-min/15-min
-            elif inbuf[2] == 1 or inbuf[2] == 5 or inbuf[2] == 6:
-                return self.processingReadAnswer(inbuf)
+            elif inbuf[2] == self.ALL_SUM_ENERGY or inbuf[2] == self.AVERAGE_3_MIN or inbuf[2] == self.AVERAGE_30_MIN:
+                return self.processingReadAnswer(inbuf, dataDict)
 
             # sres
-            elif inbuf[2] == 36:  # 0x24
-                return self.processingBytes(inbuf)
+            elif inbuf[2] == self.SLICE_OF_ENERGY:  # 0x24
+                return self.processingBytes(inbuf, dataDict)
 
 
             #GROUP CONST----------------------------------
 
             # identification device number
-            elif inbuf[2] == 0:
+            elif inbuf[2] == self.ID:
                 result = "Идентификационный номер устройства: "
                 if len(str(inbuf[5])) == 1:
                     result += "0" + str(inbuf[5])
@@ -162,19 +183,19 @@ class CC301Protocol:
                 return result
 
             # device type
-            elif inbuf[2] == 17: # 0x11
+            elif inbuf[2] == self.DEVICE_TYPE: # 0x11
                 return self.fromBytesToStr(inbuf, 4, 4+17)
 
             # factor number
-            elif inbuf[2] == 18:  # 0x12
+            elif inbuf[2] == self.FACTOR_NUMBER:  # 0x12
                 return self.fromBytesToStr(inbuf, 4, 4+10)
 
             # version and CRCprogramming
-            elif inbuf[2] == 20:  # 0x14
+            elif inbuf[2] == self.PROGRAM_VERSION:  # 0x14
                 return self.fromBytesToStr(inbuf, 4, 4+4)
 
             # network address
-            elif inbuf[2] == 21:  # 0x15
+            elif inbuf[2] == self.NETWORK_ADDRESS:  # 0x15
                 try:
                     return inbuf[4]
                 except IndexError:
@@ -183,34 +204,37 @@ class CC301Protocol:
                     return 0
 
             # User ID
-            elif inbuf[2] == 22:  # 0x16
+            elif inbuf[2] == self.USER_ID:  # 0x16
                 return self.fromBytesToStr(inbuf, 4, 4+8)
 
             # port settings
-            elif inbuf[2] == 23:  # 0x17
+            elif inbuf[2] == self.PORT_SETTINGS:  # 0x17
                 try:
                     byte_arr = bytearray(b'')
                     byte_arr.append(inbuf[4])
                     byte_arr.append(inbuf[5])
-                    self.port.baudrate = int.from_bytes(byte_arr, byteorder='big')
-                    self.port.type = inbuf[6]
-                    self.port.count = inbuf[7]
-                    self.port.parity = inbuf[8]
-                    self.port.stop = inbuf[9]
-                    return self.port
+                    dataDict["port"] = OrderedDict()
+                    dataDict["port"]["baudrate"] = int.from_bytes(byte_arr, byteorder='big')
+                    dataDict["port"]["type"] = inbuf[6]
+                    dataDict["port"]["count"] = inbuf[7]
+                    dataDict["port"]["parity"] = inbuf[8]
+                    dataDict["port"]["stop"] = inbuf[9]
+                    return dataDict
                 except IndexError:
                     return 1
                 except Exception:
                     return 0
 
             # weight coefficient
-            elif inbuf[2] == 24:  # 0x18
+            elif inbuf[2] == self.WEIGHT_COEFFICIENT:  # 0x18
                 try:
                     byte_arr = bytearray(b'')
                     byte_arr.append(inbuf[8])
                     byte_arr.append(inbuf[9])
                     self.Ke = int.from_bytes(byte_arr, byteorder='big')
                     self.Ke = self.Ke/1000000.0
+                    dataDict["Ke"] = self.Ke
+                    return dataDict
                 except IndexError:
                     return 1
                 except Exception:
@@ -235,45 +259,45 @@ class CC301Protocol:
 
 
     #processing answer and save in struct Data()
-    def processingReadAnswer(self, inbuf):
+    def processingReadAnswer(self, inbuf, dataDict):
         try:
             byte_arr = bytearray(b'')
             byte_arr.append(inbuf[4])
             byte_arr.append(inbuf[5])
             byte_arr.append(inbuf[6])
             byte_arr.append(inbuf[7])
-            self.data.a_plus = struct.unpack('f', byte_arr)
+            dataDict["a_plus"] = struct.unpack('f', byte_arr)
             byte_arr[0] = inbuf[8]
             byte_arr[1] = inbuf[9]
             byte_arr[2] = inbuf[10]
             byte_arr[3] = inbuf[11]
-            self.data.a_minus = struct.unpack('f', byte_arr)
+            dataDict["data.a_minus"] = struct.unpack('f', byte_arr)
             byte_arr[0] = inbuf[12]
             byte_arr[1] = inbuf[13]
             byte_arr[2] = inbuf[14]
             byte_arr[3] = inbuf[15]
-            self.data.r_plus = struct.unpack('f', byte_arr)
+            dataDict["r_plus"] = struct.unpack('f', byte_arr)
             byte_arr[0] = inbuf[12]
             byte_arr[1] = inbuf[13]
             byte_arr[2] = inbuf[14]
             byte_arr[3] = inbuf[15]
-            self.data.r_minus = struct.unpack('f', byte_arr)
-            return self.data
+            dataDict["r_minus"] = struct.unpack('f', byte_arr)
+            return dataDict
         except IndexError:
             return 1
         except Exception:
             return 0
 
     # for sres
-    def processingBytes(self, inbuf):
+    def processingBytes(self, inbuf, dataDict):
         try:
-            list = [self.data.a_plus, self.data.a_minus, self.data.r_plus, self.data.r_minus]
+            list = ["a_plus", "a_minus", "r_plus", "r_minus"]
             byte_arr = bytearray(b'')
             for i in range(4):
                 byte_arr.append(inbuf[4 + i*2])
                 byte_arr.append(inbuf[5 + i*2])
-                list[i] = int.from_bytes(byte_arr, byteorder='big')
-            return list
+                dataDict[list[i]] = int.from_bytes(byte_arr, byteorder='big')
+            return dataDict
         except IndexError:
             return 1
         except Exception:
@@ -465,7 +489,7 @@ class StrumenTS_05_07Protocol():
     CURRENT_DATE_TIME = 32
     PROGRAM_VERSION = 20
     NETWORK_ADDRESS = 21
-    USER_ID  = 22
+    USER_ID = 22
     PORT_SETTINGS = 23
     ARCHIVE_ALL_VALUE_HOUR = 192
     ARCHIVE_ALL_VALUE_DAY = 193
@@ -762,11 +786,11 @@ class StrumenTS_05_07Protocol():
                     byte_arr.append(inbuf[4])
                     byte_arr.append(inbuf[5])
                     dataDict["port"] = OrderedDict()
-                    dataDict["baudrate"] = int.from_bytes(byte_arr, byteorder='big')
-                    dataDict["type"] = inbuf[6]
-                    dataDict["count"] = inbuf[7]
-                    dataDict["parity"] = inbuf[8]
-                    dataDict["stop"] = inbuf[9]
+                    dataDict["port"]["baudrate"] = int.from_bytes(byte_arr, byteorder='big')
+                    dataDict["port"]["type"] = inbuf[6]
+                    dataDict["port"]["count"] = inbuf[7]
+                    dataDict["port"]["parity"] = inbuf[8]
+                    dataDict["port"]["stop"] = inbuf[9]
                     return dataDict
                 except IndexError:
                     return 1
