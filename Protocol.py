@@ -6,8 +6,38 @@ from collections import OrderedDict
 
 class CC301Protocol:
 
+    """
+
+    Реализация протокола электросчетчика "Гран-Электро СС-301"
+
+    Блок констант
+    -------------------------------------------------------------------------------
+    Значений параметров для считывания:
+    ID                - идентификационный номер устройства. Вызов (ADDR- адрес устр-ва, obj.ID, parametr - 0x00, offset - 0x00, tariff - 0x00).
+    DEVICE_TYPE       - тип прибора. Вызов аналогично ID.
+    FACTOR_NUMBER     - заводской номер. -//-.
+    RELEASE_DATE      - дата выпуска прибора. -//-.
+    CURRENT_DATE_TIME - текущее время и число. -//-.
+    PROGRAM_VERSION   - версия программы. Вызов -//-.
+    NETWORK_ADDRESS   - сетевой адрес прибора. -//-.
+    USER_ID           - идентификатор пользователя. -//-.
+    PORT_SETTINGS     - конфигурация порта связи. -//-.
+
+    SUM_BEGIN_DAY     - накопленная энергия на начало суток. Вызов (ADDR - адрес устройства, obj.SUM_BEGIN_DAY, offset - (0...30), tariff - (0...8))
+    SUM_BEGIN_MONTH   - накопленная энергия на начало месяца. Вызов (ADDR - адрес устройства, obj.SUM_BEGIN_MONTH, offset - (0...11), tariff - (0...8))
+    SUM_BEGIN_YEAR    - накопленная энергия на начало года. Вызов (ADDR - адрес устройства, obj.SUM_BEGIN_YEAR, offset - (0...7), tariff - (0...8))
+    INCREMENT_DAY     - приращение энергии за сутки. Вызов (ADDR - aдрес устройства, obj.INCREMENT_DAY, offset - (0...(len(month) - 1)), tariff - (0...8))
+    INCREMENT_MONTH   - приращение энергии за месяц. Вызов (ADDR - aдрес устройства, obj.INCREMENT_DAY, offset - (0...23), tariff - (0...8))
+    INCREMENT_YEAR    - приращение энергии за год. Вызов (ADDR - aдрес устройства, obj.INCREMENT_DAY, offset - (0...7), tariff - (0...8))
+    AVERAGE_3_MIN     - среднее значение мощности за 3 минуты. Вызов (ADDR - адрес устройства, obj.AVERAGE_3_MIN, offset - (0...10), tariff - 0x00)
+    AVERAGE_30_MIN    - среднее значение мощности за 30 минут. Вызов (ADDR - адрес устройства, obj.AVERAGE_30_MIN, offset - (0...1), tariff - 0x00)
+    -------------------------------------------------------------------------------
+
+    """
+
     def __init__(self):
         self.__buff = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+        self.__list_of_parametrs = ["a_plus", "a_minus", "r_plus", "r_minus"]
         self.__crc = CRC()
         self.__checkParam = 0
         self.__checkAddr = 0
@@ -37,6 +67,18 @@ class CC301Protocol:
     AVERAGE_3_MIN = 5
     AVERAGE_30_MIN = 6
     SLICE_OF_ENERGY = 36
+
+    # Ошибки:
+    GENERAL_EXCEPTION  = 0
+    INDEX_OUT_OF_RANGE = 1
+    NOT_CORRECT_CRC    = 2
+
+    @property
+    def list_of_parametrs(self):
+        return self.__list_of_parametrs
+    @list_of_parametrs.setter
+    def list_of_parametrs(self, list_of_paramets):
+        self.__list_of_parametrs = list_of_paramets
 
     @property
     def buff(self):
@@ -126,6 +168,7 @@ class CC301Protocol:
 
     def unpack(self, inbuf):
 
+
         """
 
         Метод обработки входящей от счетчика посылки. В зависимости от байта параметра вызывается определенный case обработки.
@@ -146,9 +189,9 @@ class CC301Protocol:
                     dataDict["time"]["sec"] = inbuf[4]
                     return dataDict
                 except IndexError:
-                    return 1
+                    return self.INDEX_OUT_OF_RANGE
                 except Exception:
-                    return 0
+                    return self.GENERAL_EXCEPTION
 
             # by the beginning of the day/month/year
             elif inbuf[2] == self.SUM_BEGIN_DAY or inbuf[2] == self.SUM_BEGIN_MONTH or inbuf[2] == self.SUM_BEGIN_YEAR:  # 0x2A, 0x2B, 0x2C
@@ -199,9 +242,9 @@ class CC301Protocol:
                 try:
                     return inbuf[4]
                 except IndexError:
-                    return 1
+                    return self.INDEX_OUT_OF_RANGE
                 except Exception:
-                    return 0
+                    return self.GENERAL_EXCEPTION
 
             # User ID
             elif inbuf[2] == self.USER_ID:  # 0x16
@@ -221,9 +264,9 @@ class CC301Protocol:
                     dataDict["port"]["stop"] = inbuf[9]
                     return dataDict
                 except IndexError:
-                    return 1
+                    return self.INDEX_OUT_OF_RANGE
                 except Exception:
-                    return 0
+                    return self.GENERAL_EXCEPTION
 
             # weight coefficient
             elif inbuf[2] == self.WEIGHT_COEFFICIENT:  # 0x18
@@ -236,13 +279,13 @@ class CC301Protocol:
                     dataDict["Ke"] = self.Ke
                     return dataDict
                 except IndexError:
-                    return 1
+                    return self.INDEX_OUT_OF_RANGE
                 except Exception:
-                    return 0
+                    return self.GENERAL_EXCEPTION
 
             #END GROUP CONST-----------------------------
         else:
-            return 2
+            return self.NOT_CORRECT_CRC
 
 
 
@@ -253,55 +296,40 @@ class CC301Protocol:
                 byte_arr.append(inbuf[i])
             return bytes.decode(bytes(byte_arr), "ascii")
         except IndexError:
-            return 1
+            return self.INDEX_OUT_OF_RANGE
         except Exception:
-            return 0
+            return self.GENERAL_EXCEPTION
 
 
     #processing answer and save in struct Data()
-    def processingReadAnswer(self, inbuf, dataDict):
+    def processingReadAnswer(self, inbuf, dataDict, index=4):
         try:
             byte_arr = bytearray(b'')
-            byte_arr.append(inbuf[4])
-            byte_arr.append(inbuf[5])
-            byte_arr.append(inbuf[6])
-            byte_arr.append(inbuf[7])
-            dataDict["a_plus"] = struct.unpack('f', byte_arr)
-            byte_arr[0] = inbuf[8]
-            byte_arr[1] = inbuf[9]
-            byte_arr[2] = inbuf[10]
-            byte_arr[3] = inbuf[11]
-            dataDict["data.a_minus"] = struct.unpack('f', byte_arr)
-            byte_arr[0] = inbuf[12]
-            byte_arr[1] = inbuf[13]
-            byte_arr[2] = inbuf[14]
-            byte_arr[3] = inbuf[15]
-            dataDict["r_plus"] = struct.unpack('f', byte_arr)
-            byte_arr[0] = inbuf[12]
-            byte_arr[1] = inbuf[13]
-            byte_arr[2] = inbuf[14]
-            byte_arr[3] = inbuf[15]
-            dataDict["r_minus"] = struct.unpack('f', byte_arr)
+            for i in self.list_of_parametrs:
+                byte_arr.append(inbuf[index])
+                byte_arr.append(inbuf[index + 1])
+                byte_arr.append(inbuf[index + 2])
+                byte_arr.append(inbuf[index + 3])
+                dataDict[i] = struct.unpack('f', byte_arr)
             return dataDict
         except IndexError:
-            return 1
+            return self.INDEX_OUT_OF_RANGE
         except Exception:
-            return 0
+            return self.GENERAL_EXCEPTION
 
     # for sres
     def processingBytes(self, inbuf, dataDict):
         try:
-            list = ["a_plus", "a_minus", "r_plus", "r_minus"]
             byte_arr = bytearray(b'')
             for i in range(4):
                 byte_arr.append(inbuf[4 + i*2])
                 byte_arr.append(inbuf[5 + i*2])
-                dataDict[list[i]] = int.from_bytes(byte_arr, byteorder='big')
+                dataDict[self.list_of_parametrs[i]] = int.from_bytes(byte_arr, byteorder='big')
             return dataDict
         except IndexError:
-            return 1
+            return self.INDEX_OUT_OF_RANGE
         except Exception:
-            return 0
+            return self.GENERAL_EXCEPTION
 
     # method check correct answer or not, return bool
     def checkAnswer(self, inbuf):
@@ -423,7 +451,7 @@ class StrumenTS_05_07Protocol():
                          Вызов obj.pack(ADDR, obj.SUM_HEAT_MONTH_BEGIN, P1 - (0...15), P2 - 0x00, P3 - аналогично CURRENT_DATA_VAlUE, P4 - 0x00)
 
     SUM_HEAT_YEAR_BEGIN  - накопленная энрегия на начало года
-                        Bызов obj.pack(ADDR, obj.SUM_HEAT_YEAR_BEGIN, P1 - 0x00, P2 - 0x00, P3 - аналогично CURRENT_DATA_VAlUE, P4 - 0x00)
+                        Bызов obj.pack(ADDR, obj.SUM_HEAT_YEAR_BEGIN, P1 - (0...15), P2 - 0x00, P3 - аналогично CURRENT_DATA_VAlUE, P4 - 0x00)
     --------------------------------------------------------------------------------
 
 
@@ -505,6 +533,11 @@ class StrumenTS_05_07Protocol():
     SUM_HEAT_MONTH_BEGIN = 43
     SUM_HEAT_YEAR_BEGIN = 44
     CONFIGURATION = 41
+
+    # Ошибки
+    GENERAL_EXCEPTION = 0
+    INDEX_OUT_OF_RANGE = 1
+    NOT_CORRECT_CRC = 2
 
     @property
     def contour(self):
@@ -753,27 +786,27 @@ class StrumenTS_05_07Protocol():
                     dataDict["time"]["sec"] = inbuf[4]
                     return dataDict
                 except IndexError:
-                    return 1
+                    return self.INDEX_OUT_OF_RANGE
                 except Exception:
-                    return 0
+                    return self.GENERAL_EXCEPTION
 
             # program version
             elif inbuf[2] == self.PROGRAM_VERSION:  # 0x14
                 try:
                     return self._fromBytesToStr(inbuf, 4, 4 + 4)
                 except IndexError:
-                    return 1
+                    return self.INDEX_OUT_OF_RANGE
                 except Exception:
-                    return 0
+                    return self.GENERAL_EXCEPTION
 
             # network address
             elif inbuf[2] == self.NETWORK_ADDRESS:  # 0x15
                 try:
                     return inbuf[4]
                 except IndexError:
-                    return 1
+                    return self.INDEX_OUT_OF_RANGE
                 except Exception:
-                    return 0
+                    return self.GENERAL_EXCEPTION
 
             # User ID
             elif inbuf[2] == self.USER_ID:  # 0x16
@@ -793,9 +826,9 @@ class StrumenTS_05_07Protocol():
                     dataDict["port"]["stop"] = inbuf[9]
                     return dataDict
                 except IndexError:
-                    return 1
+                    return self.INDEX_OUT_OF_RANGE
                 except Exception:
-                    return 0
+                    return self.GENERAL_EXCEPTION
             # END GROUP CONST----------------------------------------
 
             # DATA ARCHIVE*******************************************
@@ -871,9 +904,9 @@ class StrumenTS_05_07Protocol():
                     return dataDict
 
                 except IndexError:
-                    return 1
+                    return self.INDEX_OUT_OF_RANGE
                 except Exception:
-                    return 0
+                    return self.GENERAL_EXCEPTION
             # day/month/year
             elif inbuf[2] == self.ARCHIVE_ALL_VALUE_DAY or inbuf[2] == self.ARCHIVE_ALL_VALUE_MONTH or inbuf[2] == self.ARCHIVE_ALL_VALUE_YEAR: # 0xC1, 0xC2, 0xC3
                 self.counter = 6
@@ -923,9 +956,9 @@ class StrumenTS_05_07Protocol():
 
                     return dataDict
                 except IndexError:
-                    return 1
+                    return self.INDEX_OUT_OF_RANGE
                 except Exception:
-                    return 0
+                    return self.GENERAL_EXCEPTION
             # On a specific parametr
 
             # hour
@@ -1020,9 +1053,9 @@ class StrumenTS_05_07Protocol():
                                 dataDict[i]["Act"] = int.from_bytes(self._automation_bytearray(inbuf, count=2), byteorder='big')
                     return dataDict
                 except IndexError:
-                    return 1
+                    return self.INDEX_OUT_OF_RANGE
                 except Exception:
-                    return 0
+                    return self.GENERAL_EXCEPTION
 
             # day/month/year
 
@@ -1086,9 +1119,9 @@ class StrumenTS_05_07Protocol():
                                 dataDict[i]["Act"] = int.from_bytes(self._automation_bytearray(inbuf, count=2), byteorder='big')
                     return dataDict
                 except IndexError:
-                    return 1
+                    return self.INDEX_OUT_OF_RANGE
                 except Exception:
-                    return 0
+                    return self.GENERAL_EXCEPTION
 
             # END DATA ARCHIVE***************************************
 
@@ -1172,9 +1205,9 @@ class StrumenTS_05_07Protocol():
                             dataDict[i]["P2"] = float("{0:.2f}".format(struct.unpack('f', self._automation_bytearray(inbuf))[0]))
                     return dataDict
                 except IndexError:
-                    return 1
+                    return self.INDEX_OUT_OF_RANGE
                 except Exception:
-                    return 0
+                    return self.GENERAL_EXCEPTION
 
             # END CURRENT DATA---------------------------------------
 
@@ -1204,9 +1237,9 @@ class StrumenTS_05_07Protocol():
                             dataDict[i]["Q2"] = float("{0:.2f}".format(struct.unpack('f', self._automation_bytearray(inbuf))[0]))
                     return dataDict
                 except IndexError:
-                    return 1
+                    return self.INDEX_OUT_OF_RANGE
                 except Exception:
-                    return 0
+                    return self.INDEX_OUT_OF_RANGE
             # END GROUP THERMAL ENERGY
 
             # CONFIGERATION
@@ -1221,13 +1254,13 @@ class StrumenTS_05_07Protocol():
                     for i in sorted(config.keys()):
                         result += "Contour: %i, type: %i" % ((int(i)+1), config[i])
                 except IndexError:
-                    return 1
+                    return self.INDEX_OUT_OF_RANGE
                 except Exception:
-                    return 0
+                    return self.GENERAL_EXCEPTION
 
             # END CONFIGERATION
         else:
-            return 2
+            return self.NOT_CORRECT_CRC
 
 
     def _contour_definition(self, inbuf):
@@ -1249,9 +1282,9 @@ class StrumenTS_05_07Protocol():
                 test[2] = inbuf[4] & 0x0f
             return test
         except IndexError:
-            return 1
+            return self.INDEX_OUT_OF_RANGE
         except Exception:
-            return 0
+            return self.GENERAL_EXCEPTION
 
     def _automation_bytearray(self, inbuf, count=4):
 
@@ -1269,9 +1302,9 @@ class StrumenTS_05_07Protocol():
                 self.counter += 1  # 5
             return byte_arr
         except IndexError:
-            return 1
+            return self.INDEX_OUT_OF_RANGE
         except Exception:
-            return 0
+            return self.GENERAL_EXCEPTION
 
 
     def _fromBytesToStr(self, inbuf, start, end):
@@ -1288,155 +1321,6 @@ class StrumenTS_05_07Protocol():
                 byte_arr.append(inbuf[i])
             return bytes.decode(bytes(byte_arr), "ascii")
         except IndexError:
-            return 1
+            return self.INDEX_OUT_OF_RANGE
         except Exception:
-            return 0
-
-class Port:
-    def __init__(self, baudrate = 0, type = 0, count = 0, parity = 0, stop = 0):
-        self.__baudrate = baudrate
-        self.__type = type
-        self.__count = count
-        self.__parity = parity
-        self.__stop = stop
-
-    @property
-    def baudrate(self):
-        return self.__baudrate
-    @baudrate.setter
-    def baudrate(self, baudrate):
-        self.__baudrate = baudrate
-
-    @property
-    def type(self):
-        return self.__type
-    @type.setter
-    def type(self, type):
-        self.__type = type
-
-    @property
-    def count(self):
-        return self.__count
-    @count.setter
-    def count(self, count):
-        self.___count = count
-
-    @property
-    def parity(self):
-        return self.__parity
-    @parity.setter
-    def parity(self, parity):
-        self.__parity = parity
-
-    @property
-    def stop(self):
-        return self.__stop
-    @stop.setter
-    def stop(self, stop):
-        self.__stop = stop
-
-    def __str__(self):
-        return "Baudrate = %i, type = %i, count = %i, parity = %i, stop = %i." % (self.baudrate, self.type, self.count, self.parity, self.stop)
-
-class Time:
-    def __init__(self, year=0 , month=0, day=0, hour=0, minute=0, sec=0):
-        self.__year = year
-        self.__month = month
-        self.__day = day
-        self.__hour = hour
-        self.__minute = minute
-        self.__sec = sec
-
-
-    @property
-    def year(self):
-        return self.__year
-    @year.setter
-    def year(self, year):
-        self.__year = year
-
-    @property
-    def month(self):
-        return self.__month
-    @month.setter
-    def month(self, month):
-        self.__month = month
-
-    @property
-    def day(self):
-        return self.__day
-    @day.setter
-    def day(self, day):
-        self.__day = day
-
-    @property
-    def hour(self):
-        return self.__hour
-    @hour.setter
-    def hour(self, hour):
-        self.__hour = hour
-
-    @property
-    def minute(self):
-        return self.__minute
-    @minute.setter
-    def minute(self, minute):
-        self.__minute = minute
-
-    @property
-    def sec(self):
-        return self.__sec
-    @sec.setter
-    def sec(self, sec):
-        self.__sec = sec
-
-    def __str__(self):
-        return "Year = %d, month = %d, day = %d, HH:MM:SS = %d:%d:%d" % (self.year, self.month, self.day, self.hour, self.minute, self.sec)
-
-
-
-class EnergyData:
-    def __init__(self, a_plus=0, a_minus=0, r_plus=0, r_minus=0, tariff = 0):
-        self.__a_plus = a_plus
-        self.__a_minus = a_minus
-        self.__r_plus = r_plus
-        self.__r_minus = r_minus
-        self.__tariff = tariff
-
-    @property
-    def tariff(self):
-        return self.tariff
-    @tariff.setter
-    def tariff(self, tariff):
-        self.__tariff = tariff
-
-    @property
-    def a_plus(self):
-        return self.__a_plus
-    @a_plus.setter
-    def a_plus(self, a_plus):
-        self.__a_plus = a_plus
-
-    @property
-    def a_minus(self):
-        return self.__a_minus
-    @a_minus.setter
-    def a_minus(self, a_minus):
-        self.__a_minus = a_minus
-
-    @property
-    def r_plus(self):
-        return self.__r_plus
-    @r_plus.setter
-    def r_plus(self, r_plus):
-        self.__r_plus = r_plus
-
-    @property
-    def r_minus(self):
-        return self.__r_minus
-    @r_minus.setter
-    def r_minus(self, r_minus):
-        self.__r_minus = r_minus
-
-    def __str__(self):
-        return "A+ = %f, A- = %f, R+ = %f, R- = %f" % (self.a_plus, self.a_minus, self.r_plus, self.r_minus)
+            return self.GENERAL_EXCEPTION
