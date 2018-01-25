@@ -42,10 +42,7 @@ class CC301Protocol:
         self.__checkParam = 0
         self.__checkAddr = 0
         self.__strResult = ""
-        self.__data = EnergyData()
-        self.__time = Time()
         self.__Ke = 0  # weight coefficient
-        self.__port = Port()
 
     ID = 0
     DEVICE_TYPE = 17
@@ -290,6 +287,8 @@ class CC301Protocol:
 
 
     def fromBytesToStr(self, inbuf, start, end):
+
+        """ Метод формирует и возвращает строку из последовательности байт в кодировке ASCII"""
         try:
             byte_arr = bytearray(b'')
             for i in range(start, end):
@@ -303,6 +302,8 @@ class CC301Protocol:
 
     #processing answer and save in struct Data()
     def processingReadAnswer(self, inbuf, dataDict, index=4):
+
+        """ Метод формирует словарь(dict) с ключами из массива list_of_parametrs, значение - число float, сформированное из 4 байт данных """
         try:
             byte_arr = bytearray(b'')
             for i in self.list_of_parametrs:
@@ -319,6 +320,8 @@ class CC301Protocol:
 
     # for sres
     def processingBytes(self, inbuf, dataDict):
+
+        """ Метод формирует словарь(dict) с ключами из массива list_of_parametrs, значение - срезы энергии"""
         try:
             byte_arr = bytearray(b'')
             for i in range(4):
@@ -495,9 +498,7 @@ class StrumenTS_05_07Protocol():
         self.__checkParam = 0
         self.__checkAddr = 0
         self.__strResult = ""
-        self.__time = Time()
         self.__Ke = 0  # weight coefficient
-        self.__port = Port()
         self.__counter = 0
         self.__contour = 0
 
